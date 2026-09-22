@@ -23,10 +23,10 @@ Los enlaces van en una sola dirección: de acá al demo, nunca del demo hacia ac
 | # | Sistema | Repo | Stack | Magnitud | Sembrados |
 |---|---|---|---|---|---|
 | 01 | Biblioteca de barrio | [fitqa-demo-01](https://github.com/SantiagoMartinezCO/fitqa-demo-01) | Node 24 + Express + `node:sqlite` | **pequeño** (S=13, D=356) | 3 + 1 trampa |
-| 02 | Reserva de canchas | _pendiente_ | Python + FastAPI | mediano (objetivo S≈60) | 8 + trampas |
+| 02 | Reserva de canchas | [fitqa-demo-02](https://github.com/SantiagoMartinezCO/fitqa-demo-02) | Python 3.13 + FastAPI + `sqlite3` | **mediano** (S=68, D=2.747) | 8 + 2 trampas |
 | 03 | Back-office | _pendiente_ | Go + chi + Next | grande (objetivo S≈105) | ~20 + trampas |
 
-Ficha de cada uno en su carpeta: [`01-biblioteca/`](01-biblioteca/).
+Ficha de cada uno en su carpeta: [`01-biblioteca/`](01-biblioteca/), [`02-canchas/`](02-canchas/).
 
 ## Qué lleva la ficha de un demo
 
@@ -83,3 +83,7 @@ Lo aprendido construyendo el primero:
    dejó la 6 y no se distingue un defecto de una contaminación.
 6. **Verificá el catálogo antes de usarlo.** Un catálogo que miente convierte cualquier punteo
    en basura. Los verificadores de cada demo existen para eso.
+7. **Verificá cada regla por las dos puertas: la que crea y la que edita.** El verificador del
+   demo 01 probó la unicidad de `isbn` en el alta y no en la modificación, y ahí había un
+   defecto que nadie había sembrado: el agente lo encontró y el catálogo lo contó como falso
+   positivo. Un catálogo incompleto no baja el recall, arruina la precisión.

@@ -1,0 +1,190 @@
+{
+  "demo": "02-canchas",
+  "sut": "https://github.com/SantiagoMartinezCO/fitqa-demo-02",
+  "stack": "Python 3.13 + FastAPI + sqlite3 (stdlib) + Jinja2",
+  "puerto": 3211,
+  "reset": "POST /admin/reset",
+  "verificado_el": "2026-09-22",
+  "verificador": "node verificar.mjs http://localhost:3211  (78 comprobaciones)",
+  "credenciales": {
+    "admin": { "email": "admin@canchas.test", "clave": "admin123" },
+    "duenio": { "email": "roberto@canchas.test", "clave": "duenio123" },
+    "duenio_2": { "email": "lucia@canchas.test", "clave": "duenio123" },
+    "jugador": { "email": "ana@canchas.test", "clave": "jugador123" },
+    "jugador_2": { "email": "bruno@canchas.test", "clave": "jugador123" },
+    "dado_de_baja": { "email": "elena@canchas.test", "clave": "jugador123" }
+  },
+  "semilla": {
+    "usuarios": 8,
+    "sedes": 4,
+    "canchas": 8,
+    "horarios": 280,
+    "reservas": 7,
+    "equipos": 3,
+    "resenas": 5
+  },
+  "defectos": [
+    {
+      "id": "CAN-01",
+      "ubicacion": "app/rutas/reservas.py, en crear(): la consulta de choques filtra estado = 'confirmada'",
+      "sintoma": "dos reservas distintas ocupan la misma cancha, fecha y franja mientras ninguna esta confirmada; la segunda devuelve 201 en vez de 409",
+      "severidad_esperada": "S1",
+      "clase": "integridad-de-estado",
+      "regla_del_readme": "Disponibilidad: una franja ocupada por una reserva vigente (pendiente o confirmada) no se puede volver a reservar",
+      "repro": [
+        "POST /admin/reset",
+        "login ana@canchas.test",
+        "POST /reservas {cancha_id:1, fecha:'2026-10-12', hora_inicio:'19:00', hora_fin:'20:00'} -> 201 pendiente",
+        "login bruno@canchas.test",
+        "POST /reservas {mismos datos} -> 201 (deberia ser 409)"
+      ],
+      "por_que_vale": "solo aparece en la segunda llamada y ninguna respuesta se ve mal. Ademas la ruta de edicion (PUT /reservas/{id}) si mira las pendientes, asi que la asimetria entre las dos puertas confirma que es un defecto y no una decision",
+      "trampa": false
+    },
+    {
+      "id": "CAN-02",
+      "ubicacion": "app/rutas/reservas.py, en confirmar(): no usa _transicionar() y valida a mano solo ('completada','no-show')",
+      "sintoma": "POST /reservas/{id}/confirmar sobre una reserva cancelada devuelve 200 y la revive",
+      "severidad_esperada": "S2",
+      "clase": "maquina-de-estados",
+      "regla_del_readme": "Estados de una reserva: cancelada, completada y no-show son terminales",
+      "repro": [
+        "POST /admin/reset",
+        "login ana@canchas.test",
+        "POST /reservas {cancha_id:2, fecha:'2026-10-13', hora_inicio:'20:00', hora_fin:'21:00'}",
+        "POST /reservas/{id}/cancelar -> 200 cancelada",
+        "login admin@canchas.test",
+        "POST /reservas/{id}/confirmar -> 200 confirmada (deberia ser 409)"
+      ],
+      "por_que_vale": "el resto de las transiciones si pasan por la tabla TRANSICIONES y validan bien. El defecto es la incoherencia de un handler contra el helper compartido, que es lo que un lector apurado da por cubierto",
+      "trampa": false
+    },
+    {
+      "id": "CAN-03",
+      "ubicacion": "app/rutas/reservas.py, en listar(): el COUNT se calcula antes de sumar la condicion de estado",
+      "sintoma": "GET /reservas?estado=cancelada devuelve 1 fila y total 7",
+      "severidad_esperada": "S3",
+      "clase": "paginacion",
+      "regla_del_readme": "Paginacion: total es la cantidad de registros que cumplen los filtros, no la de la tabla",
+      "repro": [
+        "POST /admin/reset",
+        "login admin@canchas.test",
+        "GET /reservas?estado=cancelada&limite=100 -> datos: 1, total: 7"
+      ],
+      "por_que_vale": "responde 200 y el JSON se ve sano. Solo cae si alguien compara total contra lo que efectivamente llego. Los demas filtros (cancha_id, fecha, usuario_id) si se reflejan en total, asi que probar uno solo no alcanza",
+      "trampa": false
+    },
+    {
+      "id": "CAN-04",
+      "ubicacion": "app/rutas/reservas.py, en detalle(): pide sesion pero nunca llama a _puede_gestionar()",
+      "sintoma": "un jugador lee por id la reserva de otro jugador, con nombre del titular incluido",
+      "severidad_esperada": "S2",
+      "clase": "autorizacion-horizontal",
+      "regla_del_readme": "Roles: un jugador solo ve y gestiona sus propias reservas",
+      "repro": [
+        "POST /admin/reset",
+        "login ana@canchas.test (usuario 4)",
+        "GET /reservas -> solo devuelve las de Ana (correcto)",
+        "GET /reservas/3 -> 200 con la reserva de Carla Gomez (deberia ser 403)"
+      ],
+      "por_que_vale": "hacen falta dos cuentas para verlo, y el listado del mismo recurso si esta acotado. El historial de esa misma reserva tambien rebota con 403, asi que el unico agujero es el detalle",
+      "trampa": false
+    },
+    {
+      "id": "CAN-05",
+      "ubicacion": "app/rutas/canchas.py, en disponibilidad(): el bucle recorre range(len(salida) - 1)",
+      "sintoma": "la ultima franja del dia siempre figura libre, este reservada o no",
+      "severidad_esperada": "S2",
+      "clase": "off-by-one",
+      "regla_del_readme": "Disponibilidad: una franja tomada por una reserva vigente figura ocupada",
+      "repro": [
+        "POST /admin/reset",
+        "GET /canchas/4/disponibilidad?fecha=2026-10-07 -> la franja 22:00-23:00 sale libre:true",
+        "GET /canchas/4/reservas?fecha=2026-10-07 (como admin) -> esa franja tiene una reserva confirmada"
+      ],
+      "por_que_vale": "las franjas intermedias si se marcan bien, asi que revisar una sola franja no lo encuentra. Es el caso borde de un recorrido, no un fallo general",
+      "trampa": false
+    },
+    {
+      "id": "CAN-06",
+      "ubicacion": "app/rutas/canchas.py, en listar(): filas.sort(key=lambda f: str(f[orden] or ''))",
+      "sintoma": "GET /canchas?orden=precio_hora ordena como texto: 100000 antes que 9000",
+      "severidad_esperada": "S4",
+      "clase": "orden",
+      "regla_del_readme": "Listados: orden=precio_hora ordena por precio de menor a mayor",
+      "repro": [
+        "POST /admin/reset",
+        "GET /canchas?orden=precio_hora&direccion=asc&limite=100 -> primero 100000, ultimo 9000"
+      ],
+      "por_que_vale": "ordenar por nombre o por tipo funciona bien, asi que hay que mirar la columna numerica. Es el unico defecto puramente cosmetico del catalogo",
+      "trampa": false
+    },
+    {
+      "id": "CAN-07",
+      "ubicacion": "app/rutas/canchas.py, en disponibilidad(): no mira canchas.estado",
+      "sintoma": "una cancha en mantenimiento devuelve franjas libres, y reservar cualquiera de ellas rebota con 409",
+      "severidad_esperada": "S3",
+      "clase": "coherencia-entre-endpoints",
+      "regla_del_readme": "Estados de una cancha: una cancha que no esta habilitada no tiene disponibilidad",
+      "repro": [
+        "POST /admin/reset",
+        "GET /canchas/5 -> estado: mantenimiento",
+        "GET /canchas/5/disponibilidad?fecha=2026-10-14 -> libres: 5",
+        "POST /reservas {cancha_id:5, ...} -> 409 'la cancha esta mantenimiento'"
+      ],
+      "por_que_vale": "cada endpoint por separado parece correcto; el defecto esta en que se contradicen. Solo se ve cruzando dos respuestas",
+      "trampa": false
+    },
+    {
+      "id": "CAN-08",
+      "ubicacion": "app/rutas/panel.py, en ocupacion(): el COUNT de reservadas no filtra por estado",
+      "sintoma": "la ocupacion cuenta reservas canceladas y no-show; cancelar una reserva no baja el porcentaje",
+      "severidad_esperada": "S3",
+      "clase": "reporte",
+      "regla_del_readme": "Panel: la ocupacion mide las franjas efectivamente tomadas; una reserva cancelada libera la franja",
+      "repro": [
+        "POST /admin/reset",
+        "login admin@canchas.test",
+        "GET /panel/ocupacion?fecha=2026-10-07 -> la cancha 3 figura con reservadas: 1",
+        "GET /canchas/3/reservas?fecha=2026-10-07 -> su unica reserva de ese dia esta cancelada"
+      ],
+      "por_que_vale": "el numero es plausible y nadie lo contrasta. /panel/cancelaciones y /panel/ranking-canchas si filtran por estado, asi que el mismo dominio esta bien resuelto dos lineas mas abajo",
+      "trampa": false
+    }
+  ],
+  "trampas": [
+    {
+      "id": "TRAMPA-01",
+      "ubicacion": "app/rutas/autenticacion.py, en iniciar_sesion()",
+      "sintoma": "el email inexistente, la clave equivocada y la cuenta dada de baja devuelven los tres el mismo 401 con el mensaje 'email o clave incorrectos'",
+      "parece": "que la API no distingue los casos de error y que el mensaje es poco util",
+      "por_que_esta_bien": "es una defensa contra la enumeracion de cuentas: distinguir los casos permite averiguar que emails estan registrados probando de a uno. Esta escrito y justificado en el README del SUT, seccion Notas de diseno",
+      "trampa": true
+    },
+    {
+      "id": "TRAMPA-02",
+      "ubicacion": "app/rutas/reservas.py, en borrar()",
+      "sintoma": "DELETE /reservas/99999 devuelve 204 aunque esa reserva no exista",
+      "parece": "que el endpoint no valida la existencia del recurso y deberia dar 404",
+      "por_que_esta_bien": "el borrado es idempotente a proposito: el resultado buscado -que la reserva no este- ya se cumple. GET /reservas/99999 si devuelve 404. Esta escrito y justificado en el README del SUT, seccion Notas de diseno",
+      "trampa": true
+    }
+  ],
+  "sano": [
+    "chocar con una reserva CONFIRMADA rebota con 409 (el defecto es solo con las pendientes)",
+    "completar o marcar no-show sobre una reserva pendiente: 409",
+    "un jugador no puede confirmar ni marcar no-show: 403",
+    "un jugador no puede ver /usuarios ni /panel: 403",
+    "sin token: 401; ruta o recurso inexistente: 404",
+    "email repetido en el registro y en el PUT: 409",
+    "limite fuera de 1..100, orden no permitido, fecha mal formada y puntaje fuera de 1..5: 400",
+    "hora_fin anterior o igual a hora_inicio: 400",
+    "reservar una franja que no esta en el horario de la cancha: 409",
+    "resenar una cancha en la que no se jugo: 409; resenar dos veces la misma cancha: 409",
+    "sacar al capitan de su equipo: 409",
+    "un usuario dado de baja no puede iniciar sesion: 401",
+    "las franjas intermedias de la disponibilidad se marcan ocupadas correctamente",
+    "ordenar por nombre o por tipo funciona bien",
+    "/panel/cancelaciones y /panel/ranking-canchas si filtran por estado"
+  ]
+}
