@@ -1,0 +1,80 @@
+{
+  "_nota": "Verdad de referencia de fitqa_demo_01. Vive en ESTE repo y no en el del SUT a proposito: el agente clona el SUT y lee todo lo que hay adentro, asi que un catalogo alojado ahi no se encuentra, se copia.",
+  "demo": "biblioteca",
+  "stack": "node 24 + express 4 + node:sqlite en memoria",
+  "base_url": "http://localhost:3000",
+  "reset": "POST /admin/reset",
+  "sembrados": [
+    {
+      "id": "BIB-01",
+      "ubicacion": "src/prestamos.js:disponibles() usado en crear()",
+      "clase": "estado",
+      "severidad_esperada": "S2",
+      "sintoma": "el chequeo de disponibilidad usa `< 0` en vez de `<= 0`, asi que entra un prestamo de mas: un libro con 1 ejemplar se puede prestar 2 veces y `disponibles` queda en -1",
+      "repro": [
+        "POST /admin/reset",
+        "POST /prestamos {libro_id: 2, socio_id: 1}  -> 201 (correcto)",
+        "POST /prestamos {libro_id: 2, socio_id: 3}  -> 201 (deberia ser 409)",
+        "GET /libros/2 -> disponibles: -1"
+      ],
+      "contradice": "README, seccion Disponibilidad: 'Nunca puede ser negativo'",
+      "por_que_vale": "solo aparece en la SEGUNDA llamada y no rompe nada visible: un linter no lo encuentra, hay que ejercitar el estado",
+      "trampa": false
+    },
+    {
+      "id": "BIB-02",
+      "ubicacion": "src/libros.js:listar(), OFFSET ? con `desde + 1`",
+      "clase": "off-by-one",
+      "severidad_esperada": "S3",
+      "sintoma": "la paginacion arranca en el segundo registro: con desde=0 el primer libro nunca aparece, y `total` (8) nunca coincide con la suma de las paginas (7)",
+      "repro": [
+        "GET /libros?limite=3&desde=0 -> devuelve los libros 2,3,4 en vez de 1,2,3",
+        "GET /libros?limite=100 -> total: 8 pero llegan 7 libros"
+      ],
+      "contradice": "README, seccion Paginacion: 'desde=0 devuelve desde el primer libro' y 'la suma de todas las paginas tiene que dar total'",
+      "por_que_vale": "responde 200 y el JSON se ve bien; solo se cae si alguien compara `total` contra lo que llego",
+      "trampa": false
+    },
+    {
+      "id": "BIB-03",
+      "ubicacion": "src/libros.js:borrar()",
+      "clase": "integridad",
+      "severidad_esperada": "S1",
+      "sintoma": "DELETE /libros/:id borra el libro aunque tenga prestamos sin devolver. Las claves foraneas de SQLite estan apagadas por defecto, asi que el borrado pasa y los prestamos quedan huerfanos: el JOIN de GET /prestamos los deja afuera y el prestamo vigente desaparece del sistema",
+      "repro": [
+        "POST /admin/reset",
+        "POST /prestamos {libro_id: 4, socio_id: 1} -> 201",
+        "GET /prestamos?activos=true -> 1 prestamo",
+        "DELETE /libros/4 -> 204 (deberia ser 409)",
+        "GET /prestamos?activos=true -> 0 prestamos: el registro se perdio"
+      ],
+      "contradice": "README, seccion Integridad de los prestamos",
+      "por_que_vale": "perdida de datos silenciosa, sin ningun 500 de por medio",
+      "trampa": false
+    },
+    {
+      "id": "TRAMPA-01",
+      "ubicacion": "src/socios.js:ver()",
+      "clase": "falso positivo",
+      "severidad_esperada": null,
+      "sintoma": "GET /socios/4 (socio dado de baja) devuelve 403 y no 404. Parece un codigo de estado equivocado y NO lo es: esta documentado y justificado en el README, seccion 'Decisiones que parecen errores y no lo son'",
+      "repro": [
+        "GET /socios/4 -> 403"
+      ],
+      "por_que_vale": "sin al menos una trampa se mide recall y nunca precision, y un agente que reporta todo saca 100%",
+      "trampa": true
+    }
+  ],
+  "como_se_puntea": {
+    "recall": "sembrados con trampa=false que el agente reporto / 3",
+    "precision": "bugs reportados que estan en sembrados con trampa=false / total de bugs reportados. Reportar TRAMPA-01 cuenta como falso positivo.",
+    "acuerdo_de_severidad": "de los encontrados, cuantos coinciden con severidad_esperada"
+  },
+  "repo": "https://github.com/SantiagoMartinezCO/fitqa_demo_01",
+  "magnitud": {
+    "bucket": "pequeno",
+    "S": 13,
+    "D": 356,
+    "confianza": "media"
+  }
+}
