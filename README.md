@@ -22,7 +22,7 @@ Los enlaces van en una sola dirección: de acá al demo, nunca del demo hacia ac
 
 | # | Sistema | Repo | Stack | Magnitud | Sembrados |
 |---|---|---|---|---|---|
-| 01 | Biblioteca de barrio | [fitqa_demo_01](https://github.com/SantiagoMartinezCO/fitqa_demo_01) | Node 24 + Express + `node:sqlite` | **pequeño** (S=13, D=356) | 3 + 1 trampa |
+| 01 | Biblioteca de barrio | [fitqa-demo-01](https://github.com/SantiagoMartinezCO/fitqa-demo-01) | Node 24 + Express + `node:sqlite` | **pequeño** (S=13, D=356) | 3 + 1 trampa |
 | 02 | Reserva de canchas | _pendiente_ | Python + FastAPI | mediano (objetivo S≈60) | 8 + trampas |
 | 03 | Back-office | _pendiente_ | Go + chi + Next | grande (objetivo S≈105) | ~20 + trampas |
 
@@ -42,8 +42,8 @@ Ficha de cada uno en su carpeta: [`01-biblioteca/`](01-biblioteca/).
 
 ```bash
 # 1. levantar el SUT
-git clone https://github.com/SantiagoMartinezCO/fitqa_demo_01.git
-cd fitqa_demo_01 && npm install && PORT=3210 npm start
+git clone https://github.com/SantiagoMartinezCO/fitqa-demo-01.git
+cd fitqa-demo-01 && npm install && PORT=3210 npm start
 
 # 2. confirmar que el catálogo describe al SUT (si esto falla, no midas nada)
 node <kb>/01-biblioteca/verificar.mjs http://localhost:3210
