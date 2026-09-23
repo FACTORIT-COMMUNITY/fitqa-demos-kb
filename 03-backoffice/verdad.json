@@ -187,6 +187,66 @@
       "trampa": false
     },
     {
+      "id": "BO-13",
+      "ubicacion": "internal/handlers/usuarios.go:CambiarRol(), ResetearPassword(); internal/handlers/pagos.go:Confirmar(), Anular(); internal/handlers/resenas.go:Moderar() — ninguno escribe en la tabla auditoria",
+      "clase": "integridad/observabilidad",
+      "severidad_esperada": "S2",
+      "sintoma": "ninguna accion administrativa sensible (cambiar rol, resetear password, confirmar/anular un pago, moderar una resena) queda registrada en auditoria; GET /auditoria siempre devuelve vacio",
+      "repro": [
+        "POST /admin/reset",
+        "login como admin",
+        "POST /usuarios/2/cambiar-rol {rol:\"admin\"} -> 200",
+        "GET /auditoria -> {\"total\":0,\"items\":[]} (deberia haber al menos 1 entrada)"
+      ],
+      "contradice": "README, seccion Auditoria y notificaciones: 'toda accion administrativa sensible... queda registrada en /auditoria'",
+      "por_que_vale": "el endpoint existe, responde 200 y tiene forma valida; nada delata que nunca se escribe nada ahi, hasta que se compara contra lo que deberia haber",
+      "trampa": false
+    },
+    {
+      "id": "BO-14",
+      "ubicacion": "internal/handlers/pagos.go:Confirmar() — no inserta en notificaciones al confirmar un pago",
+      "clase": "integridad/automatizacion",
+      "severidad_esperada": "S3",
+      "sintoma": "confirmar un pago no genera ninguna notificacion para el vendedor dueno del pedido",
+      "repro": [
+        "POST /admin/reset",
+        "crear, confirmar un pedido con vendedor X, crear y confirmar su pago",
+        "GET /notificaciones (login como X) -> no aparece ninguna notificacion nueva sobre ese pago"
+      ],
+      "contradice": "README, seccion Auditoria y notificaciones: 'confirmar un pago genera ademas una notificacion... para el vendedor dueno del pedido'",
+      "por_que_vale": "no hay error ni codigo de estado que lo delate: el pago se confirma bien, solo falta el efecto secundario que el README promete",
+      "trampa": false
+    },
+    {
+      "id": "BO-15",
+      "ubicacion": "internal/handlers/pedidos.go:precioParaCliente() y el loop de items en Crear()/AgregarItem() — no verifican productos.publicado",
+      "clase": "validacion/integridad",
+      "severidad_esperada": "S2",
+      "sintoma": "un producto con publicado:false (ej. id 7, Mancuernas 5kg) se puede agregar como item de un pedido nuevo sin que nada lo rechace",
+      "repro": [
+        "POST /admin/reset",
+        "GET /productos/7 -> publicado:false",
+        "POST /pedidos {cliente_id:2, items:[{producto_id:7, cantidad:1}]} -> 201 (deberia ser 409)"
+      ],
+      "contradice": "README, seccion Pedidos: 'un producto con publicado:false no se puede agregar como item de un pedido... intentarlo es 409'",
+      "por_que_vale": "el pedido se crea y calcula bien sus totales; nada en la respuesta delata que el producto no deberia estar en venta",
+      "trampa": false
+    },
+    {
+      "id": "BO-16",
+      "ubicacion": "internal/handlers/usuarios.go:Crear() y schema.sql (usuarios.email UNIQUE sin COLLATE NOCASE) — la unicidad depende del constraint de sqlite, que distingue mayusculas",
+      "clase": "validacion/normalizacion",
+      "severidad_esperada": "S3",
+      "sintoma": "crear un usuario con el mismo email que otro pero con distinta capitalizacion (ANA.RODRIGUEZ@backoffice.demo vs ana.rodriguez@backoffice.demo) no se rechaza como duplicado",
+      "repro": [
+        "POST /admin/reset",
+        "POST /usuarios {nombre:\"Ana Duplicada\", email:\"ANA.RODRIGUEZ@backoffice.demo\", rol:\"operador\"} -> 201 (deberia ser 409)"
+      ],
+      "contradice": "README, seccion Usuarios: 'el email es unico sin distinguir mayusculas de minusculas'",
+      "por_que_vale": "el 409 de sku/email duplicado existe y funciona para el caso identico; el caso con distinta capitalizacion pasa por otra puerta y nadie la probo",
+      "trampa": false
+    },
+    {
       "id": "TRAMPA-01",
       "ubicacion": "internal/handlers/usuarios.go, Get()",
       "clase": "falso positivo",
@@ -224,11 +284,25 @@
       ],
       "por_que_vale": "parece plata que quedo colgada y no lo es: anular el pago es una decision financiera aparte, con su propio endpoint (/pedidos/{id}/reembolsar)",
       "trampa": true
+    },
+    {
+      "id": "TRAMPA-04",
+      "ubicacion": "internal/auth/jwt.go, internal/auth/middleware.go: el access token lleva el rol grabado desde que se firma; RequireAuth no lo relee de la base en cada request, solo confirma que el usuario siga activo",
+      "clase": "falso positivo",
+      "severidad_esperada": null,
+      "sintoma": "cambiar el rol de un usuario (POST /usuarios/{id}/cambiar-rol) no le quita privilegios al access token que ya tiene emitido: sigue actuando con el rol viejo hasta que expire (15 min) o pida un refresh. Esta documentado en el README, seccion Usuarios",
+      "repro": [
+        "login como un vendedor -> token T con rol vendedor",
+        "un admin le cambia el rol a operador via /usuarios/{id}/cambiar-rol",
+        "con T (sin refrescar) seguir pudiendo hacer lo que hace un vendedor, no lo que hace un operador"
+      ],
+      "por_que_vale": "parece que el cambio de rol no aplico y si aplico: el token viejo es una fotografia, no una consulta en vivo. Reportarlo como bug de autorizacion es el falso positivo",
+      "trampa": true
     }
   ],
   "como_se_puntea": {
-    "recall": "sembrados con trampa=false que el agente reporto / 12",
-    "precision": "bugs reportados que estan en sembrados con trampa=false / total de bugs reportados. Reportar cualquiera de las 3 TRAMPA-* cuenta como falso positivo.",
+    "recall": "sembrados con trampa=false que el agente reporto / 16",
+    "precision": "bugs reportados que estan en sembrados con trampa=false / total de bugs reportados. Reportar cualquiera de las 4 TRAMPA-* cuenta como falso positivo.",
     "acuerdo_de_severidad": "de los encontrados, cuantos coinciden con severidad_esperada"
   },
   "repo": "https://github.com/SantiagoMartinezCO/fitqa-demo-03",

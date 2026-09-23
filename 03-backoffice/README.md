@@ -76,9 +76,9 @@ Contraseña de todos los usuarios: `Demo1234!` (o `GET /admin/seed-info`).
 
 ## Defectos sembrados
 
-Doce, cubriendo autorización, idempotencia, integridad, dinero, validación y la
-lección de "alta vs. edición" que dejó demo-02. El detalle ejecutable con repro exacta
-está en [`verdad.json`](verdad.json); acá el resumen.
+Dieciséis, cubriendo autorización, idempotencia, integridad, dinero, validación,
+observabilidad y la lección de "alta vs. edición" que dejó demo-02. El detalle
+ejecutable con repro exacta está en [`verdad.json`](verdad.json); acá el resumen.
 
 | ID | Clase | Severidad | Resumen |
 |---|---|---|---|
@@ -94,13 +94,19 @@ está en [`verdad.json`](verdad.json); acá el resumen.
 | BO-10 | integridad | S2 | borrar la dirección principal de un cliente no promueve otra |
 | BO-11 | validación | S3 | `estado` inválido en `/pedidos` da 200 con lista vacía en vez de 400 |
 | BO-12 | validación/dinero | S2 | un pago se acepta aunque su monto no coincida con el total del pedido |
+| BO-13 | observabilidad | S2 | ninguna acción administrativa sensible queda registrada en `/auditoria` |
+| BO-14 | automatización | S3 | confirmar un pago no genera la notificación prometida para el vendedor |
+| BO-15 | validación/integridad | S2 | un producto sin publicar se puede agregar como item de un pedido |
+| BO-16 | validación/normalización | S3 | un email duplicado con distinta capitalización no se detecta |
 
 **Por qué vale cada uno:** BO-01/02 son bypasses de autorización reales, sin ningún 500
 de por medio. BO-03 solo aparece en la SEGUNDA llamada (regla 2 del método). BO-05 y
 BO-10 son pérdida silenciosa de integridad referencial, sin crash. BO-07 y BO-12 son
 errores de dinero que no se notan mirando un solo campo, hay que hacer la cuenta. BO-08
 es la regla 7 del método aplicada de nuevo: se verificó la ruta del alta y no la de la
-edición.
+edición. BO-13 y BO-14 son efectos secundarios prometidos que simplemente no ocurren, sin
+que la operación principal falle. BO-16 es el mismo tipo de descuido que BO-08: la
+unicidad se probó con el caso idéntico y no con la variante realista (mayúsculas).
 
 ## Trampas
 
@@ -123,7 +129,15 @@ estaba. Parece plata que quedó colgada; es una decisión deliberada — anular 
 ya entró es un flujo aparte (`/pedidos/{id}/reembolsar`), documentado en el README del
 SUT.
 
-**Reportar cualquiera de las tres cuenta como falso positivo.**
+### TRAMPA-04 — cambiar el rol no invalida el token ya emitido
+
+Un access token lleva el rol grabado desde que se firma. Cambiarle el rol a un usuario
+no le quita privilegios al token que ya tiene emitido: sigue actuando con el rol viejo
+hasta que expire (15 min) o pida un refresh. Documentado en el README, sección
+*Usuarios*. El token es una fotografía, no una consulta en vivo — lo único que se
+revalida en cada request es si el usuario sigue `activo`.
+
+**Reportar cualquiera de las cuatro cuenta como falso positivo.**
 
 ## Comportamiento que sí está bien
 
@@ -143,6 +157,6 @@ Conviene tenerlo a mano para no contar como acierto algo que el agente reportó 
 node verificar.mjs http://localhost:8080
 ```
 
-Confirma los 12 defectos, las 3 trampas y 6 casos "sano" contra un servidor recién
+Confirma los 16 defectos, las 4 trampas y 6 casos "sano" contra un servidor recién
 reseteado. **Si esto falla, el catálogo no describe al SUT y cualquier punteo contra él
 es basura.**

@@ -24,7 +24,7 @@ Los enlaces van en una sola dirección: de acá al demo, nunca del demo hacia ac
 |---|---|---|---|---|---|
 | 01 | Biblioteca de barrio | [fitqa-demo-01](https://github.com/SantiagoMartinezCO/fitqa-demo-01) | Node 24 + Express + `node:sqlite` | **pequeño** (S=13, D=356) | 3 + 1 trampa |
 | 02 | Reserva de canchas | [fitqa-demo-02](https://github.com/SantiagoMartinezCO/fitqa-demo-02) | Python 3.13 + FastAPI + `sqlite3` | **mediano** (S=68, D=2.747) | 8 + 2 trampas |
-| 03 | Back-office | [fitqa-demo-03](https://github.com/SantiagoMartinezCO/fitqa-demo-03) | Go 1.25 + chi v5 + Next.js | **grande** (S=102, D=5.481) | 12 + 3 trampas |
+| 03 | Back-office | [fitqa-demo-03](https://github.com/SantiagoMartinezCO/fitqa-demo-03) | Go 1.25 + chi v5 + Next.js | **grande** (S=102, D=5.481) | 16 + 4 trampas |
 
 Ficha de cada uno en su carpeta: [`01-biblioteca/`](01-biblioteca/), [`02-canchas/`](02-canchas/), [`03-backoffice/`](03-backoffice/).
 

@@ -141,6 +141,39 @@ const casos = {
     assert.equal(r.estado, 201, "deberia ser 400: el monto no coincide con el total del pedido (ese es el bug)");
   },
 
+  async "BO-13 ninguna accion administrativa queda registrada en auditoria"() {
+    await reset();
+    await pedir("/usuarios/2/cambiar-rol", { method: "POST", token: ADMIN, body: { rol: "admin" } });
+    const r = await pedir("/auditoria", { token: ADMIN });
+    assert.equal(r.cuerpo.total, 0, "deberia haber al menos 1 entrada (ese es el bug)");
+  },
+
+  async "BO-14 confirmar un pago no notifica al vendedor"() {
+    await reset();
+    const pedido = await pedir("/pedidos", { method: "POST", token: VENDEDOR3, body: { cliente_id: 2, items: [{ producto_id: 1, cantidad: 1 }] } });
+    await pedir(`/pedidos/${pedido.cuerpo.id}/actualizar-estado`, { method: "POST", token: VENDEDOR3, body: { estado: "confirmado" } });
+    const antes = (await pedir("/notificaciones", { token: VENDEDOR3 })).cuerpo.total;
+    const total = (await pedir(`/pedidos/${pedido.cuerpo.id}`, { token: ADMIN })).cuerpo.total_centavos;
+    const pago = await pedir("/pagos", { method: "POST", token: ADMIN, body: { pedido_id: pedido.cuerpo.id, monto_centavos: total, metodo: "efectivo" } });
+    await pedir(`/pagos/${pago.cuerpo.id}/confirmar`, { method: "POST", token: ADMIN });
+    const despues = (await pedir("/notificaciones", { token: VENDEDOR3 })).cuerpo.total;
+    assert.equal(despues, antes, "deberia haber una notificacion nueva para el vendedor (ese es el bug)");
+  },
+
+  async "BO-15 un producto sin publicar se puede agregar a un pedido"() {
+    await reset();
+    const producto = await pedir("/productos/7", { token: ADMIN });
+    assert.equal(producto.cuerpo.publicado, false, "el producto 7 deberia estar sin publicar en la semilla");
+    const r = await pedir("/pedidos", { method: "POST", token: VENDEDOR3, body: { cliente_id: 2, items: [{ producto_id: 7, cantidad: 1 }] } });
+    assert.equal(r.estado, 201, "deberia ser 409: el producto no esta publicado (ese es el bug)");
+  },
+
+  async "BO-16 un email duplicado con distinta capitalizacion no se detecta"() {
+    await reset();
+    const r = await pedir("/usuarios", { method: "POST", token: ADMIN, body: { nombre: "Ana Duplicada", email: "ANA.RODRIGUEZ@backoffice.demo", rol: "operador" } });
+    assert.equal(r.estado, 201, "deberia ser 409: ya existe ana.rodriguez@backoffice.demo (ese es el bug)");
+  },
+
   async "TRAMPA-01 el 403 del usuario desactivado es el comportamiento documentado"() {
     await reset();
     assert.equal((await pedir("/usuarios/5", { token: ADMIN })).estado, 403);
@@ -161,6 +194,14 @@ const casos = {
     assert.equal(pedido.cuerpo.estado, "cancelado");
     const pagos = await pedir("/pagos?pedido_id=1", { token: ADMIN });
     assert.equal(pagos.cuerpo.items[0].estado, "confirmado", "el pago sigue confirmado: hay que reembolsar aparte");
+  },
+
+  async "TRAMPA-04 cambiar el rol no invalida el access token ya emitido"() {
+    await reset();
+    const vendedorToken = await login("diego.paredes@backoffice.demo");
+    await pedir("/usuarios/4/cambiar-rol", { method: "POST", token: ADMIN, body: { rol: "operador" } });
+    // el token viejo sigue actuando como vendedor: puede cancelar SU propio pedido (3)
+    assert.equal((await pedir("/pedidos/3/cancelar", { method: "POST", token: vendedorToken })).estado, 200);
   },
 
   // Lo que tiene que estar BIEN. Un demo donde todo falla no mide precision: mide si el
