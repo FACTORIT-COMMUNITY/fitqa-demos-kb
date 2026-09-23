@@ -34,11 +34,16 @@ FIT_MAX_ITERATIONS     = 6     # ceil(20/5) + 2 de margen
 FIT_MAX_TURNS_ANALYZER = 60
 ```
 
-Presupuesto esperado: ~286 turnos, ~19,2M tokens de entrada, 13 sesiones.
+Presupuesto esperado: **~389 turnos, ~24,9M tokens de entrada**, 13 sesiones. Subió respecto de
+los ~286 de la primera medición porque la tarifa se reajustó con la corrida `biblioteca-02`
+adentro, que gastó 348 turnos sin llegar a terminar los 20 casos.
 
-> La confianza da `media` y no `alta` por un solo olor —"el repo no tiene archivos
-> commiteados"— que aparece solo si se mide una copia sin commitear. Midiendo el clone del repo
-> no debería aparecer.
+> **Corrección (2026-09-23).** La primera medición se hizo sobre una copia sin commitear y dio
+> `media` por el olor "el repo no tiene archivos commiteados". Se anotó entonces que midiendo el
+> clone la confianza debería subir. **No subió:** midiendo el clone no hay ningún olor y la
+> confianza sigue `media`, por otro motivo —`endpoints` sale `inferido` (express detectado por
+> regex) y este repo no publica contrato—. Es el único de los tres demos sin OpenAPI, así que es
+> el único que no puede llegar a `alta` por el aval del contrato.
 
 ## Defectos sembrados
 
