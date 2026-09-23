@@ -104,3 +104,15 @@ Lo aprendido construyendo el primero:
    demo 01 probó la unicidad de `isbn` en el alta y no en la modificación, y ahí había un
    defecto que nadie había sembrado: el agente lo encontró y el catálogo lo contó como falso
    positivo. Un catálogo incompleto no baja el recall, arruina la precisión.
+8. **Medí de verdad antes de declarar el bucket, y preferí arreglar el medidor a parchear
+   con un escape hatch permanente cuando el error es del medidor.** El demo 03 salió
+   `mediano` (S=69) sin ayuda: la skill de medición no reconoce `chi` a propósito, y su
+   patrón genérico deduplicaba por archivo de una forma que no entendía el router anidado
+   (mismo `(verbo, ruta)` relativo repetido en decenas de bloques del mismo archivo,
+   idéntico problema al de un Express `Router()` o un `include_router` de FastAPI
+   centralizados). La primera solución fue declarar el conteo real en `.magnitud.json`
+   — el escape hatch que la propia skill define para esto —, pero el problema no era de
+   este SUT, era de `medir.py`: se corrigió la skill (dedupe por `(verbo, ruta, handler)`,
+   más excluir los montajes `Route(...)` sin métodos explícitos), se sumó un fixture de
+   regresión, y se sacó el `.magnitud.json` porque dejó de hacer falta. `medir.py` cuenta
+   ahora los 94 endpoints reales sin ayuda. Ver `03-backoffice/README.md`.
