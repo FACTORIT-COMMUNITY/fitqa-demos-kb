@@ -23,44 +23,45 @@ tampoco requiere auth. El resto de la API exige `Authorization: Bearer <access_t
 | | |
 |---|---|
 | Bucket | **grande** |
-| S (superficie) | 102 — 94 endpoints + 7 páginas del panel Next + 1 flujo con estado |
-| D (profundidad) | 5.481 líneas |
-| Confianza | **alta** |
+| S (superficie) | 107 — 94 endpoints + 8 páginas del panel Next + 5 flujos con estado |
+| D (profundidad) | 5.940 líneas |
+| Confianza | media (`inferido`) |
 | Stack detectado | next (rutas/UI); Go+chi no está en `FRAMEWORKS` a propósito |
 
 Parámetros de corrida que salen de esa medición:
 
 ```
-FIT_MAX_TEST_CASES     = 102
-FIT_MIN_TEST_CASES     = 68
-FIT_MAX_ITERATIONS     = 23
+FIT_MAX_TEST_CASES     = 107
+FIT_MIN_TEST_CASES     = 71
+FIT_MAX_ITERATIONS     = 24
 FIT_MAX_TURNS_ANALYZER = 120
 FIT_PLAN_GATE          = 1
 ```
 
-Presupuesto esperado: ~1.443 turnos (piso), ~92,4M tokens de entrada, 47 sesiones.
+Presupuesto esperado: ~1.505 turnos (piso), ~96,3M tokens de entrada, 49 sesiones.
 
-> **Por qué hace falta un `.magnitud.json` en este demo y en ninguno de los otros dos.**
+> **Este demo ya no necesita `.magnitud.json`, y esa es la historia interesante.**
 > `chi` está deliberadamente fuera de `FRAMEWORKS`: es el stack que la skill de medición
 > usa para probar su capa de patrón genérico a escala real (el fixture sintético
-> `go-chi-api` de la skill ya la cubre con 9 endpoints de juguete; este SUT la ejercita
-> con 94 de verdad). El patrón genérico SÍ encuentra las rutas, pero su regla de
-> deduplicación —"un mismo (verbo, ruta) repetido en el mismo archivo cuenta una vez"—
-> asume que un archivo grande con rutas repetidas es *el mismo endpoint escrito dos
-> veces* (el caso que esa regla existe para blindar, ver `jev-testing` en el propio
-> `SKILL.md`). Acá no lo es: es el estilo idiomático de chi, que centraliza el árbol de
-> rutas en `cmd/api/main.go` reutilizando paths relativos (`"/"`, `"/{id}"`) dentro de
-> decenas de bloques `r.Route()/r.Group()`, uno por recurso. La consecuencia medida:
-> sin declarar nada, `medir.py` cuenta 61 endpoints (`inferido`) y clasifica **mediano**
-> con confianza media; contando a mano las llamadas `r.Get/r.Post/r.Put/r.Delete` de ese
-> archivo (`grep -oE 'r\.(Get|Post|Put|Delete|Patch)\(' cmd/api/main.go | wc -l`) da 94.
-> El `.magnitud.json` en la raíz del SUT declara ese número real, que pasa a
-> `especificado` y sube la confianza a **alta** — es exactamente el escape hatch que el
-> propio `SKILL.md` de la skill de medición documenta para "el stack que el medidor no
-> sabe leer y para corregirlo cuando cuenta mal". Esto es realimentación real para la
-> skill de medición, no un defecto de este SUT: vale la pena que quien mantenga
-> `medir.py` sepa que su dedup por archivo no distingue "mismo endpoint repetido" de
-> "mismo router anidado con paths relativos", y son cosas muy distintas.
+> `go-chi-api` ya la cubre con 9 endpoints de juguete; este SUT la ejercitó con 94 de
+> verdad). Al construirlo, la capa genérica SÍ encontraba las rutas, pero contaba solo
+> 61: su dedup por `(verbo, ruta)` **por archivo** colapsaba recursos distintos que
+> comparten un path relativo (`"/"`, `"/{id}"`) dentro de los bloques `r.Route()`
+> anidados de chi — el mismo problema que tendría un Express `Router()` o un
+> `include_router` de FastAPI centralizados en un solo archivo. Además, las propias
+> llamadas de montaje `r.Route("/x", func(r chi.Router) {...})` se contaban a sí mismas
+> como un endpoint de más, por matchear la palabra "route" que en Flask/Django sí
+> registra un endpoint.
+>
+> En vez de parchear esto con un `.magnitud.json` permanente, se corrigió `medir.py`:
+> ahora deduplica por `(verbo, ruta, handler)` — el identificador que sigue a la ruta,
+> casi siempre el handler — y excluye las llamadas de montaje sin métodos HTTP
+> explícitos. Sigue siendo agnóstico (no conoce "chi" ni ningún framework nuevo). Con el
+> fix, `medir.py` cuenta los 94 endpoints exactos sin ayuda: confianza `media`
+> (`inferido`) en vez de `alta` (`especificado`), pero correcto, y sin depender de una
+> declaración manual que alguien podría olvidar actualizar. Quedó un fixture de
+> regresión (`go-chi-nested-api`) en `calibracion.json` para que esto no se rompa de
+> nuevo. Demo-01 y demo-02 se volvieron a medir después del cambio: sin diferencias.
 
 ## Roles y credenciales sembradas
 

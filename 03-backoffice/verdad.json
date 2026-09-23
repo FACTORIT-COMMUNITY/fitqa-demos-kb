@@ -308,9 +308,9 @@
   "repo": "https://github.com/SantiagoMartinezCO/fitqa-demo-03",
   "magnitud": {
     "bucket": "grande",
-    "S": 102,
-    "D": 5481,
-    "confianza": "alta",
-    "nota": "S sale de un .magnitud.json en la raiz del SUT (endpoints:94, rutas:7): el patron generico de medir.py cuenta 61 endpoints porque su dedup por (verbo,ruta) POR ARCHIVO colapsa las rutas relativas anidadas de chi (r.Route/r.Group), todas concentradas en cmd/api/main.go. El conteo declarado (94) esta verificado a mano contando las llamadas r.Get/r.Post/r.Put/r.Delete de ese archivo. Sin el .magnitud.json el bucket medido da mediano (S=69) con confianza media; con el, da grande con confianza alta."
+    "S": 107,
+    "D": 5940,
+    "confianza": "media",
+    "nota": "medir.py se corrigio para deduplicar por (verbo,ruta,handler) en vez de (verbo,ruta), y para no contar las llamadas de montaje r.Route(...) sin metodos HTTP explicitos como endpoints. Con el fix, el patron generico cuenta 94 endpoints exactos sin necesitar .magnitud.json (que se saco de este SUT). Confianza queda en media (inferido) en vez de alta (especificado), pero es un numero correcto y no depende de una declaracion manual. Se agrego el fixture go-chi-nested-api a calibracion.json como test de regresion; demo-01 y demo-02 se re-midieron sin cambios tras el fix."
   }
 }
