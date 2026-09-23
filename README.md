@@ -24,9 +24,9 @@ Los enlaces van en una sola dirección: de acá al demo, nunca del demo hacia ac
 |---|---|---|---|---|---|
 | 01 | Biblioteca de barrio | [fitqa-demo-01](https://github.com/SantiagoMartinezCO/fitqa-demo-01) | Node 24 + Express + `node:sqlite` | **pequeño** (S=13, D=356) | 3 + 1 trampa |
 | 02 | Reserva de canchas | [fitqa-demo-02](https://github.com/SantiagoMartinezCO/fitqa-demo-02) | Python 3.13 + FastAPI + `sqlite3` | **mediano** (S=68, D=2.747) | 8 + 2 trampas |
-| 03 | Back-office | _pendiente_ | Go + chi + Next | grande (objetivo S≈105) | ~20 + trampas |
+| 03 | Back-office | [fitqa-demo-03](https://github.com/SantiagoMartinezCO/fitqa-demo-03) | Go 1.25 + chi v5 + Next.js | **grande** (S=102, D=5.481) | 12 + 3 trampas |
 
-Ficha de cada uno en su carpeta: [`01-biblioteca/`](01-biblioteca/), [`02-canchas/`](02-canchas/).
+Ficha de cada uno en su carpeta: [`01-biblioteca/`](01-biblioteca/), [`02-canchas/`](02-canchas/), [`03-backoffice/`](03-backoffice/).
 
 ## Qué lleva la ficha de un demo
 
@@ -87,3 +87,10 @@ Lo aprendido construyendo el primero:
    demo 01 probó la unicidad de `isbn` en el alta y no en la modificación, y ahí había un
    defecto que nadie había sembrado: el agente lo encontró y el catálogo lo contó como falso
    positivo. Un catálogo incompleto no baja el recall, arruina la precisión.
+8. **Medí de verdad antes de declarar el bucket, y no fuerces el número si el medidor cuenta
+   mal.** El demo 03 salió `mediano` (S=69) sin ayuda: la skill de medición no reconoce `chi`
+   a propósito, y su patrón genérico deduplica por archivo de una forma que no entiende el
+   router anidado de chi (mismo `(verbo, ruta)` relativo repetido en decenas de bloques del
+   mismo archivo). La solución no es reescribir el SUT para que el medidor lo entienda: es
+   declarar el conteo real, verificado a mano, en `.magnitud.json` — el escape hatch que la
+   propia skill define para esto — y dejar la nota de por qué. Ver `03-backoffice/README.md`.

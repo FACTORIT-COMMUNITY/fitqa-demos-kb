@@ -1,0 +1,242 @@
+{
+  "_nota": "Verdad de referencia de fitqa-demo-03. Vive en ESTE repo y no en el del SUT a proposito: el agente clona el SUT y lee todo lo que hay adentro, asi que un catalogo alojado ahi no se encuentra, se copia.",
+  "demo": "back-office",
+  "stack": "go 1.25 + chi v5 + sqlite en memoria (modernc.org/sqlite) + panel Next.js",
+  "base_url": "http://localhost:8080",
+  "reset": "POST /admin/reset (sin auth)",
+  "credenciales": "GET /admin/seed-info (sin auth) devuelve la password y el email+rol de cada usuario sembrado",
+  "sembrados": [
+    {
+      "id": "BO-01",
+      "ubicacion": "cmd/api/main.go, grupo de rutas de /pagos: POST /{id}/confirmar quedo wireado bajo RequirePermiso(\"pedidos.gestionar\") en vez de RequirePermiso(\"pagos.confirmar\")",
+      "clase": "autorizacion",
+      "severidad_esperada": "S1",
+      "sintoma": "un usuario con rol operador (que solo tiene pedidos.gestionar, no pagos.confirmar) puede confirmar un pago ajeno sin tener el permiso financiero que el README exige",
+      "repro": [
+        "POST /admin/reset",
+        "login como bruno.salas@backoffice.demo (operador)",
+        "POST /pagos/{id}/confirmar sobre un pago pendiente -> 200 (deberia ser 403)"
+      ],
+      "contradice": "README, seccion Roles y permisos: las acciones financieras estan gateadas por permiso, no por conveniencia operativa",
+      "por_que_vale": "es un bypass de autorizacion real: el endpoint exige auth pero no el permiso correcto, y no hay ningun 500 ni sintoma visible salvo revisando quien pudo hacer que",
+      "trampa": false
+    },
+    {
+      "id": "BO-02",
+      "ubicacion": "internal/handlers/pedidos.go, Cancelar(): no valida que un vendedor solo cancele pedidos donde vendedor_id == su propio id",
+      "clase": "autorizacion",
+      "severidad_esperada": "S1",
+      "sintoma": "un vendedor puede cancelar el pedido de OTRO vendedor via POST /pedidos/{id}/cancelar",
+      "repro": [
+        "POST /admin/reset",
+        "login como diego.paredes@backoffice.demo (vendedor)",
+        "POST /pedidos/1/cancelar (pedido 1 pertenece a carla.nunez, otro vendedor) -> 200 (deberia ser 403)"
+      ],
+      "contradice": "README, seccion Pedidos, Cancelar: 'un vendedor solo puede cancelar sus propios pedidos'",
+      "por_que_vale": "el permiso pedidos.cancelar esta bien asignado; falta el chequeo de pertenencia ademas del permiso, que es justo la distincion que el README promete",
+      "trampa": false
+    },
+    {
+      "id": "BO-03",
+      "ubicacion": "internal/handlers/bodegas.go, TransferirStock(): no consulta movimientos_stock por idempotency_key antes de aplicar la transferencia",
+      "clase": "idempotencia",
+      "severidad_esperada": "S1",
+      "sintoma": "reenviar la misma transferencia con el mismo idempotency_key mueve el stock DOS veces en vez de una",
+      "repro": [
+        "POST /admin/reset",
+        "POST /bodegas/transferir-stock {producto_id:1, bodega_origen_id:1, bodega_destino_id:2, cantidad:3, idempotency_key:\"k1\"} -> 200",
+        "el mismo POST otra vez con el mismo idempotency_key -> 200 (deberia devolver el mismo resultado sin mover stock de nuevo)",
+        "GET /inventario/movimientos?producto_id=1&tipo=transferencia -> aparecen 2 movimientos, no 1"
+      ],
+      "contradice": "README, seccion Inventario: 'reenviar la misma transferencia con la misma clave no la aplica dos veces'",
+      "por_que_vale": "solo aparece en la SEGUNDA llamada; la primera es indistinguible de una implementacion correcta",
+      "trampa": false
+    },
+    {
+      "id": "BO-04",
+      "ubicacion": "internal/handlers/productos.go, List(): valida `orden` contra ordenesProductoValidas pero el ORDER BY de la consulta esta hardcodeado a p.id",
+      "clase": "off-by-one",
+      "severidad_esperada": "S3",
+      "sintoma": "GET /productos?orden=nombre responde 200 (no 400) pero el resultado sigue ordenado por id, no alfabeticamente",
+      "repro": [
+        "GET /productos?orden=nombre&limite=10 -> los nombres no vienen en orden alfabetico, vienen en el mismo orden que sin el parametro"
+      ],
+      "contradice": "implicito por el propio parametro documentado y validado (acepta y no rechaza id|nombre|precio) sin aplicar el valor que no sea el default",
+      "por_que_vale": "responde 200 con datos que parecen validos; solo se nota comparando contra el orden esperado",
+      "trampa": false
+    },
+    {
+      "id": "BO-05",
+      "ubicacion": "internal/store/schema.sql (productos.categoria_id sin REFERENCES categorias(id)) + internal/handlers/categorias.go, Borrar(): sin chequeo de productos asociados",
+      "clase": "integridad",
+      "severidad_esperada": "S1",
+      "sintoma": "DELETE /categorias/{id} borra la categoria aunque tenga productos activos; esos productos quedan con un categoria_id que ya no existe",
+      "repro": [
+        "POST /admin/reset",
+        "DELETE /categorias/1 (tiene productos 1,2,3,10) -> 204 (deberia ser 409)",
+        "GET /productos/1 -> categoria_id: 1, pero GET /categorias/1 -> 404"
+      ],
+      "contradice": "README, seccion Categorias: 'una categoria con productos asociados no se puede eliminar (409)'",
+      "por_que_vale": "perdida de integridad silenciosa, sin ningun 500 de por medio; mismo patron que un borrado que deja huerfanos",
+      "trampa": false
+    },
+    {
+      "id": "BO-06",
+      "ubicacion": "internal/handlers/pedidos.go, List(): OFFSET usa pag.Desde+1 en vez de pag.Desde",
+      "clase": "off-by-one",
+      "severidad_esperada": "S3",
+      "sintoma": "GET /pedidos?desde=0 nunca devuelve el pedido de id mas chico de la pagina; la paginacion arranca en el segundo registro",
+      "repro": [
+        "POST /admin/reset",
+        "GET /pedidos?desde=0&limite=10 -> total:5, pero items trae los pedidos 2,3,4,5 (falta el 1)"
+      ],
+      "contradice": "convencion estandar de paginacion (desde=0 devuelve desde el primer registro), la misma que ya establecio fitqa-demo-01 para /libros",
+      "por_que_vale": "responde 200 y el JSON se ve bien; solo se cae si alguien compara total contra lo que efectivamente llego",
+      "trampa": false
+    },
+    {
+      "id": "BO-07",
+      "ubicacion": "internal/handlers/pedidos.go, recalcularTotales(): impuestos = subtotal * 19/100 en vez de (subtotal-descuento) * 19/100",
+      "clase": "dinero",
+      "severidad_esperada": "S2",
+      "sintoma": "un pedido con cupon paga impuestos sobre el subtotal completo, no sobre el subtotal ya descontado, asi que el total sale mas alto de lo que deberia",
+      "repro": [
+        "POST /admin/reset",
+        "crear un pedido con cupon_codigo:BIENVENIDA10 (10%) y 1 item de precio 8999",
+        "subtotal:8999, descuento:899, impuestos:1709 (deberia ser 1539 = (8999-899)*19/100), total:9809 (deberia ser 9639)"
+      ],
+      "contradice": "README, seccion Pedidos, Calculo del total: 'los impuestos (19%) se calculan sobre subtotal - descuento'",
+      "por_que_vale": "el error es proporcional al descuento: con un cupon chico casi no se nota, y crece con cupones grandes; nunca da un numero absurdo a simple vista",
+      "trampa": false
+    },
+    {
+      "id": "BO-08",
+      "ubicacion": "internal/handlers/clientes.go, ActualizarDireccion(): no desmarca es_principal en las demas direcciones del cliente antes de aplicar la actualizacion (si ocurre en CrearDireccion)",
+      "clase": "alta-vs-edicion",
+      "severidad_esperada": "S2",
+      "sintoma": "editar una direccion existente para marcarla es_principal:true dejA DOS direcciones principales para el mismo cliente",
+      "repro": [
+        "POST /admin/reset",
+        "POST /clientes/1/direcciones {es_principal:true} -> direccion A principal",
+        "POST /clientes/1/direcciones {es_principal:false} -> direccion B",
+        "PUT /clientes/1/direcciones/{B} {es_principal:true} -> 200",
+        "GET /clientes/1/direcciones -> A y B, las dos con es_principal:true"
+      ],
+      "contradice": "README, seccion Clientes, Direcciones: 'marcar una nueva direccion (al crearla o al editarla) como principal desmarca automaticamente la que lo era, en cualquiera de los dos casos'",
+      "por_que_vale": "la regla se cumple en el alta; la edicion es la puerta que no se probo, calcado del error real de fitqa-demo-02 (regla 7 del metodo)",
+      "trampa": false
+    },
+    {
+      "id": "BO-09",
+      "ubicacion": "internal/handlers/envios.go, ActualizarEstado(): no valida que el envio haya pasado por en_transito antes de aceptar el estado entregado",
+      "clase": "estado",
+      "severidad_esperada": "S2",
+      "sintoma": "un envio en pendiente puede pasar directo a entregado sin pasar por en_transito, y sin tracking",
+      "repro": [
+        "POST /admin/reset",
+        "el pedido 1 (confirmado) ya tiene un envio en estado pendiente",
+        "POST /envios/{id}/actualizar-estado {estado:\"entregado\"} -> 200 (deberia ser 409)"
+      ],
+      "contradice": "README, seccion Envios: 'un envio solo puede marcarse entregado despues de haber pasado por en_transito'",
+      "por_que_vale": "el estado final (entregado) es indistinguible del caso correcto salvo revisando el historial de transiciones",
+      "trampa": false
+    },
+    {
+      "id": "BO-10",
+      "ubicacion": "internal/handlers/clientes.go, BorrarDireccion(): no promueve otra direccion a principal cuando la borrada era la principal",
+      "clase": "integridad",
+      "severidad_esperada": "S2",
+      "sintoma": "borrar la direccion principal de un cliente que tiene otras direcciones deja al cliente sin ninguna direccion marcada como principal",
+      "repro": [
+        "POST /admin/reset",
+        "POST /clientes/2/direcciones {es_principal:true} -> direccion A",
+        "POST /clientes/2/direcciones {es_principal:false} -> direccion B",
+        "DELETE /clientes/2/direcciones/{A} -> 204",
+        "GET /clientes/2/direcciones -> ninguna con es_principal:true (deberia promoverse B)"
+      ],
+      "contradice": "README, seccion Clientes, Direcciones: 'si se borra la principal, la mas antigua de las restantes pasa a ser principal de inmediato'",
+      "por_que_vale": "perdida de un invariante sin ningun error visible; solo se nota consultando las direcciones despues",
+      "trampa": false
+    },
+    {
+      "id": "BO-11",
+      "ubicacion": "internal/handlers/pedidos.go, List(): el filtro `estado` se concatena directo al WHERE sin validar contra el enum",
+      "clase": "validacion",
+      "severidad_esperada": "S3",
+      "sintoma": "GET /pedidos?estado=valor-que-no-existe responde 200 con una lista vacia en vez de 400",
+      "repro": [
+        "GET /pedidos?estado=no-existe -> 200, {\"total\":0,\"items\":[]}"
+      ],
+      "contradice": "README, seccion Pedidos: 'estado acepta unicamente borrador, confirmado, cancelado o reembolsado; cualquier otro valor es 400, nunca una lista vacia silenciosa'",
+      "por_que_vale": "un typo en el valor del filtro no se distingue de 'no hay resultados', que es el peor tipo de silencio para quien esta buscando algo",
+      "trampa": false
+    },
+    {
+      "id": "BO-12",
+      "ubicacion": "internal/handlers/pagos.go, Crear(): no compara monto_centavos contra pedidos.total_centavos",
+      "clase": "validacion",
+      "severidad_esperada": "S2",
+      "sintoma": "POST /pagos acepta un monto_centavos que no coincide con el total del pedido (de mas o de menos) sin rechazarlo",
+      "repro": [
+        "POST /admin/reset",
+        "crear y confirmar un pedido con total_centavos:10709",
+        "POST /pagos {pedido_id, monto_centavos:1, metodo:\"efectivo\"} -> 201 (deberia ser 400)"
+      ],
+      "contradice": "README, seccion Pagos: 'el monto_centavos de un pago nuevo tiene que ser exactamente igual a total_centavos del pedido; un monto distinto es 400'",
+      "por_que_vale": "el pago se crea y hasta se puede confirmar; nada en la respuesta delata que el monto no cuadra con el pedido",
+      "trampa": false
+    },
+    {
+      "id": "TRAMPA-01",
+      "ubicacion": "internal/handlers/usuarios.go, Get()",
+      "clase": "falso positivo",
+      "severidad_esperada": null,
+      "sintoma": "GET /usuarios/{id} de un usuario desactivado (id 5, elena.vidal) devuelve 403 y no 404. Esta documentado y justificado en el README, seccion Notas de diseno",
+      "repro": [
+        "GET /usuarios/5 -> 403"
+      ],
+      "por_que_vale": "sin al menos una trampa se mide recall y nunca precision, y un agente que reporta todo saca 100%",
+      "trampa": true
+    },
+    {
+      "id": "TRAMPA-02",
+      "ubicacion": "cmd/api/main.go, grupo de rutas de /reportes/*: gateado por RequirePermiso(\"reportes.ver\"), que solo tiene asignado el rol admin",
+      "clase": "falso positivo",
+      "severidad_esperada": null,
+      "sintoma": "un usuario con rol operador que llama a /reportes/ventas-por-periodo, /reportes/top-productos o /reportes/stock-bajo recibe 403 aunque el endpoint exista y su token sea valido. Esta documentado en el README, seccion Notas de diseno",
+      "repro": [
+        "login como bruno.salas@backoffice.demo (operador)",
+        "GET /reportes/stock-bajo -> 403"
+      ],
+      "por_que_vale": "parece un permiso mal asignado y no lo es: es una decision de negocio documentada",
+      "trampa": true
+    },
+    {
+      "id": "TRAMPA-03",
+      "ubicacion": "internal/handlers/pedidos.go, Cancelar(): no toca la tabla pagos",
+      "clase": "falso positivo",
+      "severidad_esperada": null,
+      "sintoma": "cancelar un pedido confirmado que ya tiene un pago confirmado deja el pago exactamente en estado confirmado; no se anula solo. Esta documentado en el README, seccion Notas de diseno",
+      "repro": [
+        "POST /admin/reset",
+        "POST /pedidos/1/cancelar (pedido 1 esta confirmado y tiene un pago confirmado) -> 200, pedido queda cancelado",
+        "GET /pagos?pedido_id=1 -> el pago sigue en estado confirmado"
+      ],
+      "por_que_vale": "parece plata que quedo colgada y no lo es: anular el pago es una decision financiera aparte, con su propio endpoint (/pedidos/{id}/reembolsar)",
+      "trampa": true
+    }
+  ],
+  "como_se_puntea": {
+    "recall": "sembrados con trampa=false que el agente reporto / 12",
+    "precision": "bugs reportados que estan en sembrados con trampa=false / total de bugs reportados. Reportar cualquiera de las 3 TRAMPA-* cuenta como falso positivo.",
+    "acuerdo_de_severidad": "de los encontrados, cuantos coinciden con severidad_esperada"
+  },
+  "repo": "https://github.com/SantiagoMartinezCO/fitqa-demo-03",
+  "magnitud": {
+    "bucket": "grande",
+    "S": 102,
+    "D": 5481,
+    "confianza": "alta",
+    "nota": "S sale de un .magnitud.json en la raiz del SUT (endpoints:94, rutas:7): el patron generico de medir.py cuenta 61 endpoints porque su dedup por (verbo,ruta) POR ARCHIVO colapsa las rutas relativas anidadas de chi (r.Route/r.Group), todas concentradas en cmd/api/main.go. El conteo declarado (94) esta verificado a mano contando las llamadas r.Get/r.Post/r.Put/r.Delete de ese archivo. Sin el .magnitud.json el bucket medido da mediano (S=69) con confianza media; con el, da grande con confianza alta."
+  }
+}
