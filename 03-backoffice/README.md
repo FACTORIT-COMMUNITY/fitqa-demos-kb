@@ -2,162 +2,136 @@
 
 **Repo del SUT:** https://github.com/SantiagoMartinezCO/fitqa-demo-03
 
-API de back-office para un e-commerce chico: catálogo, inventario multi-bodega,
-clientes, pedidos, pagos, envíos, cupones y usuarios con roles. Go 1.25 + chi v5 +
-SQLite embebido (`modernc.org/sqlite`, sin CGO) en memoria; panel de administración en
-Next.js (App Router).
+Back-office de un e-commerce chico: catálogo, inventario multi-bodega, clientes, pedidos,
+pagos, envíos, cupones, reseñas y usuarios con roles. API en **Go + chi** sobre SQLite
+embebido; panel de administración en **Next.js**.
 
 ```bash
 git clone https://github.com/SantiagoMartinezCO/fitqa-demo-03.git
-cd fitqa-demo-03 && go run ./cmd/api          # API en :8080 (PORT la cambia)
-cd web && npm install && npm run dev          # panel en :3000 (opcional)
+cd fitqa-demo-03
+go run ./cmd/api                        # API en :8080 (PORT lo cambia)
+cd web && npm install && npm run dev    # panel en :3000, apunta a NEXT_PUBLIC_API_URL
 ```
 
-`POST /admin/reset` devuelve la base a la semilla; no requiere auth.
-`GET /admin/seed-info` devuelve la contraseña y el email+rol de cada usuario sembrado;
-tampoco requiere auth. El resto de la API exige `Authorization: Bearer <access_token>`
-(`POST /auth/login {email, password}`).
+`POST /admin/reset` recrea el esquema entero y vuelve a sembrar. `GET /admin/seed-info`
+devuelve la contraseña de siembra y los usuarios, para poder autenticarse sin leer el código.
+Ninguno de los dos pide autenticación.
+
+Auth por JWT: `POST /auth/login` da `access_token` (15 min) y `refresh_token` (7 días). Tres
+roles fijos: `admin`, `operador`, `vendedor`.
 
 ## Magnitud medida
+
+Medido el 2026-09-23 sobre el clone del repo.
 
 | | |
 |---|---|
 | Bucket | **grande** |
-| S (superficie) | 107 — 94 endpoints + 8 páginas del panel Next + 5 flujos con estado |
+| S (superficie) | 107 — 94 endpoints + 8 rutas Next + 5 flujos |
 | D (profundidad) | 5.940 líneas |
-| Confianza | media (`inferido`) |
-| Stack detectado | next (rutas/UI); Go+chi no está en `FRAMEWORKS` a propósito |
-
-Parámetros de corrida que salen de esa medición:
+| Confianza | media |
+| Stack detectado | next (+ chi por patrón genérico) |
+| Modificadores | ninguno activo |
 
 ```
-FIT_MAX_TEST_CASES     = 107
+FIT_MAX_TEST_CASES     = 107   # ~1 caso por punto de superficie
 FIT_MIN_TEST_CASES     = 71
-FIT_MAX_ITERATIONS     = 24
+FIT_MAX_ITERATIONS     = 24    # ceil(107/5) + 2 de margen
 FIT_MAX_TURNS_ANALYZER = 120
-FIT_PLAN_GATE          = 1
+FIT_PLAN_GATE          = 1     # la confianza no es alta
 ```
 
-Presupuesto esperado: ~1.505 turnos (piso), ~96,3M tokens de entrada, 49 sesiones.
+Presupuesto esperado: ~1.505 turnos, ~96,3M tokens de entrada, 49 sesiones. Es un **piso**.
 
-> **Este demo ya no necesita `.magnitud.json`, y esa es la historia interesante.**
-> `chi` está deliberadamente fuera de `FRAMEWORKS`: es el stack que la skill de medición
-> usa para probar su capa de patrón genérico a escala real (el fixture sintético
-> `go-chi-api` ya la cubre con 9 endpoints de juguete; este SUT la ejercitó con 94 de
-> verdad). Al construirlo, la capa genérica SÍ encontraba las rutas, pero contaba solo
-> 61: su dedup por `(verbo, ruta)` **por archivo** colapsaba recursos distintos que
-> comparten un path relativo (`"/"`, `"/{id}"`) dentro de los bloques `r.Route()`
-> anidados de chi — el mismo problema que tendría un Express `Router()` o un
-> `include_router` de FastAPI centralizados en un solo archivo. Además, las propias
-> llamadas de montaje `r.Route("/x", func(r chi.Router) {...})` se contaban a sí mismas
-> como un endpoint de más, por matchear la palabra "route" que en Flask/Django sí
-> registra un endpoint.
->
-> En vez de parchear esto con un `.magnitud.json` permanente, se corrigió `medir.py`:
-> ahora deduplica por `(verbo, ruta, handler)` — el identificador que sigue a la ruta,
-> casi siempre el handler — y excluye las llamadas de montaje sin métodos HTTP
-> explícitos. Sigue siendo agnóstico (no conoce "chi" ni ningún framework nuevo). Con el
-> fix, `medir.py` cuenta los 94 endpoints exactos sin ayuda: confianza `media`
-> (`inferido`) en vez de `alta` (`especificado`), pero correcto, y sin depender de una
-> declaración manual que alguien podría olvidar actualizar. Quedó un fixture de
-> regresión (`go-chi-nested-api`) en `calibracion.json` para que esto no se rompa de
-> nuevo. Demo-01 y demo-02 se volvieron a medir después del cambio: sin diferencias.
+### Es el demo que probó el agnosticismo, y lo rompió primero
 
-## Roles y credenciales sembradas
+chi no está en la lista de frameworks de la skill: los 94 endpoints los cuenta la **capa
+genérica**, que es justamente para lo que existe. Pero medir este repo destapó dos defectos del
+patrón genérico que ningún fixture había tocado, los dos por el mismo motivo —un router
+anidado y centralizado en un solo archivo, el estilo idiomático de chi:
 
-Contraseña de todos los usuarios: `Demo1234!` (o `GET /admin/seed-info`).
-
-| Email | Rol | Notas |
+| | Contaba | Por qué |
 |---|---|---|
-| ana.rodriguez@backoffice.demo | admin | todos los permisos |
-| bruno.salas@backoffice.demo | operador | productos, categorías, inventario, pedidos, cupones |
-| carla.nunez@backoffice.demo | vendedor | dueña del pedido 1 en la semilla |
-| diego.paredes@backoffice.demo | vendedor | dueño del pedido 3 y 4 en la semilla |
-| elena.vidal@backoffice.demo | operador | **desactivada** — para TRAMPA-01 |
+| Dedup por `(verbo, ruta)` | **61** | tres bloques `r.Route(...)` que reusan `"/"` y `"/{id}"` colapsaban en uno |
+| `r.Route(...)` como endpoint | **108** | los 14 montajes de sub-router se contaban a sí mismos como un endpoint `*` |
+| Arreglado (2026-09-23) | **94** | el handler entra a la clave de dedup; un `Route` con closure y sin métodos es montaje |
 
-## Defectos sembrados
+94 es el conteo a mano: `grep -c 'r.(Get|Post|Put|Patch|Delete)("'` sobre los `.go` da 94, y
+`r.Route("` da 14. El mismo problema existe en un `Router()` de Express o un `include_router`
+de FastAPI, así que no era una particularidad de Go.
 
-Dieciséis, cubriendo autorización, idempotencia, integridad, dinero, validación,
-observabilidad y la lección de "alta vs. edición" que dejó demo-02. El detalle
-ejecutable con repro exacta está en [`verdad.json`](verdad.json); acá el resumen.
+Mientras tanto el repo tuvo un `.magnitud.json` declarando la magnitud a mano; se sacó cuando
+el medidor empezó a contar bien (commit `2449620`).
 
-| ID | Clase | Severidad | Resumen |
-|---|---|---|---|
-| BO-01 | autorización | S1 | `operador` confirma un pago sin tener `pagos.confirmar` (ruta mal wireada) |
-| BO-02 | autorización | S1 | un `vendedor` cancela el pedido de otro vendedor |
-| BO-03 | idempotencia | S1 | transferir stock dos veces con el mismo `idempotency_key` lo duplica |
-| BO-04 | off-by-one | S3 | `orden=nombre` en `/productos` se valida pero se ignora al ordenar |
-| BO-05 | integridad | S1 | borrar una categoría con productos los deja apuntando a un id inexistente |
-| BO-06 | off-by-one | S3 | paginación de `/pedidos` con `desde=0` pierde el primer registro |
-| BO-07 | dinero | S2 | los impuestos se calculan sobre el subtotal completo, ignorando el descuento del cupón |
-| BO-08 | alta-vs-edición | S2 | editar una dirección a principal no desmarca la anterior (sí ocurre al crearla) |
-| BO-09 | estado | S2 | un envío pasa a `entregado` sin pasar por `en_transito` |
-| BO-10 | integridad | S2 | borrar la dirección principal de un cliente no promueve otra |
-| BO-11 | validación | S3 | `estado` inválido en `/pedidos` da 200 con lista vacía en vez de 400 |
-| BO-12 | validación/dinero | S2 | un pago se acepta aunque su monto no coincida con el total del pedido |
-| BO-13 | observabilidad | S2 | ninguna acción administrativa sensible queda registrada en `/auditoria` |
-| BO-14 | automatización | S3 | confirmar un pago no genera la notificación prometida para el vendedor |
-| BO-15 | validación/integridad | S2 | un producto sin publicar se puede agregar como item de un pedido |
-| BO-16 | validación/normalización | S3 | un email duplicado con distinta capitalización no se detecta |
+### Dos cosas más de la medición
 
-**Por qué vale cada uno:** BO-01/02 son bypasses de autorización reales, sin ningún 500
-de por medio. BO-03 solo aparece en la SEGUNDA llamada (regla 2 del método). BO-05 y
-BO-10 son pérdida silenciosa de integridad referencial, sin crash. BO-07 y BO-12 son
-errores de dinero que no se notan mirando un solo campo, hay que hacer la cuenta. BO-08
-es la regla 7 del método aplicada de nuevo: se verificó la ruta del alta y no la de la
-edición. BO-13 y BO-14 son efectos secundarios prometidos que simplemente no ocurren, sin
-que la operación principal falle. BO-16 es el mismo tipo de descuido que BO-08: la
-unicidad se probó con el caso idéntico y no con la variante realista (mayúsculas).
+**La confianza queda en `media` y está bien que quede.** Este repo no publica contrato, así que
+`endpoints` sale `inferido` y no hay nada que lo avale. Es el resultado honesto: 94 salidos de
+un regex sobre código Go son un piso, no una medida.
+
+**Falta una ruta de Next.** El repo tiene 9 archivos `page.tsx` y el medidor cuenta 8: el regex
+de rutas de Next exige un carácter antes de `page`, así que `web/app/page.tsx` —la home— nunca
+matchea. S real es 108, no 107. No mueve el bucket, pero es un hueco conocido del medidor: el
+mismo que hace que `fit-vigia` mida 11 rutas contra 12.
 
 ## Trampas
 
-### TRAMPA-01 — el 403 del usuario desactivado
+Las tres están escritas y justificadas en el README del SUT, sección *Notas de diseño*.
+Reportar cualquiera cuenta como **falso positivo**.
 
-`GET /usuarios/{id}` de un usuario desactivado (`elena.vidal`, id 5) devuelve **403 y no
-404**. Documentado en el README del SUT, sección *Notas de diseño*: el usuario existe,
-lo que no hay es acceso a su ficha — mismo argumento que BIB-01 en demo-01.
+### TRAMPA-01 — `GET /usuarios/{id}` de un usuario desactivado devuelve 403, no 404
 
-### TRAMPA-02 — los reportes son solo para `admin`
+Parece un código de estado equivocado: el recurso no está disponible, debería ser 404. No lo
+es: el usuario existe y lo que falta es acceso a su ficha. Un 404 permitiría mapear qué emails
+existen probando ids uno por uno. `GET /usuarios?activo=false` sí lista a los desactivados,
+porque ahí no se expone la ficha individual de nadie.
 
-`/reportes/*` devuelve 403 para cualquier rol que no sea `admin`, aunque el endpoint
-exista y el token sea válido. Documentado como decisión de negocio, no como permiso mal
-asignado.
+### TRAMPA-02 — un `operador` recibe 403 en `/reportes/*`
+
+Parece un permiso que falta asignar al rol. Es una decisión: los reportes financieros son solo
+para `admin`, porque la cifra de ventas y el detalle de qué se vendió no son información
+operativa del día a día.
 
 ### TRAMPA-03 — cancelar un pedido no anula su pago
 
-Cancelar un pedido `confirmado` con un pago `confirmado` deja el pago exactamente como
-estaba. Parece plata que quedó colgada; es una decisión deliberada — anular dinero que
-ya entró es un flujo aparte (`/pedidos/{id}/reembolsar`), documentado en el README del
-SUT.
+`POST /pedidos/{id}/cancelar` sobre un pedido `confirmado` con un pago `confirmado` deja el
+pedido en `cancelado` y el pago en `confirmado`. Parece un estado inconsistente. No lo es:
+anular dinero que ya entró es una decisión financiera distinta de cancelar un pedido
+operativamente, y tiene su propio endpoint (`/pedidos/{id}/reembolsar`) con su propio registro.
+Un pedido cancelado con el pago todavía confirmado es la señal de que falta iniciar ese
+reembolso.
 
-### TRAMPA-04 — cambiar el rol no invalida el token ya emitido
+## Catálogo de defectos sembrados — PENDIENTE
 
-Un access token lleva el rol grabado desde que se firma. Cambiarle el rol a un usuario
-no le quita privilegios al token que ya tiene emitido: sigue actuando con el rol viejo
-hasta que expire (15 min) o pida un refresh. Documentado en el README, sección
-*Usuarios*. El token es una fotografía, no una consulta en vivo — lo único que se
-revalida en cada request es si el usuario sigue `activo`.
+**Este demo todavía no tiene catálogo, y sin catálogo no se puede puntear una corrida.**
 
-**Reportar cualquiera de las cuatro cuenta como falso positivo.**
+El SUT se construyó fuera de esta base de conocimiento y su repo —correctamente— no dice cuáles
+son sus defectos sembrados. Escribirlos acá a partir de leer el código sería adivinar: se
+confundiría un defecto sembrado con uno accidental, y un catálogo incompleto no baja el recall
+sino que arruina la precisión, que es la lección que dejó el demo 01.
 
-## Comportamiento que sí está bien
+Hasta que exista `verdad.json` y su `verificar.mjs`, de este demo se puede usar la **magnitud y
+los parámetros de corrida** —que sí están medidos— pero **no** los tres números del punteo.
 
-Conviene tenerlo a mano para no contar como acierto algo que el agente reportó de más:
+Lo que hace falta, en orden:
 
-- Confirmar o anular un pago ya resuelto es 409 (no un no-op silencioso).
-- Un producto con pedidos asociados no se puede eliminar: 409.
-- Un cliente dado de baja no puede generar pedidos nuevos: 409.
-- Un cupón inactivo no es válido para un pedido nuevo.
-- Un vendedor **sí** puede cancelar sus propios pedidos (el bug es solo con los ajenos).
-- Validación de cuerpo, `orden` fuera del enum y rutas inexistentes son 400/404, incluso
-  sin autenticación.
+1. La lista de defectos sembrados con id, ubicación, síntoma, severidad esperada y la regla del
+   README del SUT que cada uno contradice.
+2. `verdad.json` con esa lista, más las tres trampas de arriba y los comportamientos sanos.
+3. `verificar.mjs` que confirme cada entrada contra el SUT levantado, **incluida cada regla por
+   la ruta de actualización y no solo por la de alta** (regla 7 del método).
 
-## Verificar el catálogo
+El README del SUT es una spec detallada y sirve de base: cada regla explícita que declara es
+candidata a ser contradicha por un defecto sembrado. Algunas que se prestan especialmente:
 
-```bash
-node verificar.mjs http://localhost:8080
-```
-
-Confirma los 16 defectos, las 4 trampas y 6 casos "sano" contra un servidor recién
-reseteado. **Si esto falla, el catálogo no describe al SUT y cualquier punteo contra él
-es basura.**
+- La cadena del total de un pedido: `subtotal − descuento + impuestos(19%)`, con el descuento
+  calculado sobre el subtotal y nunca mayor que él.
+- La dirección principal de un cliente: exactamente una, y si se borra la principal la más
+  antigua de las restantes ocupa el lugar.
+- La idempotencia de `/bodegas/transferir-stock` por `idempotency_key`, la única escritura del
+  sistema con esa garantía.
+- El orden de los estados de un envío: `entregado` solo desde `en_transito`, nunca desde
+  `pendiente`.
+- Confirmar un pago ya confirmado es 409, no un no-op.
+- El email de usuario es único **sin distinguir mayúsculas**.
+- `GET /pedidos?estado=<valor inválido>` es 400, nunca una lista vacía silenciosa.
