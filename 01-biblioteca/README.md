@@ -1,13 +1,13 @@
 # 01 — Biblioteca de barrio
 
-**Repo del SUT:** https://github.com/SantiagoMartinezCO/fitqa-demo-01
+**Repo del SUT:** https://github.com/FACTORIT-COMMUNITY/fitqa-demo-01
 
 API de préstamos de una biblioteca chica: catálogo, socios y préstamos. Node 24 + Express +
 SQLite embebido (`node:sqlite`), sin build y sin base en disco. Una sola dependencia de
 ejecución.
 
 ```bash
-git clone https://github.com/SantiagoMartinezCO/fitqa-demo-01.git
+git clone https://github.com/FACTORIT-COMMUNITY/fitqa-demo-01.git
 cd fitqa-demo-01 && npm install
 PORT=3210 npm start          # el 3000 por defecto suele estar tomado
 ```

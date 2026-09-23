@@ -22,9 +22,9 @@ Los enlaces van en una sola dirección: de acá al demo, nunca del demo hacia ac
 
 | # | Sistema | Repo | Stack | Magnitud | Sembrados |
 |---|---|---|---|---|---|
-| 01 | Biblioteca de barrio | [fitqa-demo-01](https://github.com/SantiagoMartinezCO/fitqa-demo-01) | Node 24 + Express + `node:sqlite` | **pequeño** (S=13, D=356) | 3 + 1 trampa |
-| 02 | Reserva de canchas | [fitqa-demo-02](https://github.com/SantiagoMartinezCO/fitqa-demo-02) | Python 3.13 + FastAPI + `sqlite3` | **mediano** (S=68, D=2.747) | 8 + 2 trampas |
-| 03 | Back-office | [fitqa-demo-03](https://github.com/SantiagoMartinezCO/fitqa-demo-03) | Go + chi + Next | **grande** (S=107, D=5.940) | _catálogo pendiente_ + 3 trampas |
+| 01 | Biblioteca de barrio | [fitqa-demo-01](https://github.com/FACTORIT-COMMUNITY/fitqa-demo-01) | Node 24 + Express + `node:sqlite` | **pequeño** (S=13, D=356) | 3 + 1 trampa |
+| 02 | Reserva de canchas | [fitqa-demo-02](https://github.com/FACTORIT-COMMUNITY/fitqa-demo-02) | Python 3.13 + FastAPI + `sqlite3` | **mediano** (S=68, D=2.747) | 8 + 2 trampas |
+| 03 | Back-office | [fitqa-demo-03](https://github.com/FACTORIT-COMMUNITY/fitqa-demo-03) | Go + chi + Next | **grande** (S=107, D=5.940) | _catálogo pendiente_ + 3 trampas |
 
 Los tres medidos el 2026-09-23 sobre su clone, con la misma skill y la misma versión. Cada uno
 cae en su bucket por un camino distinto: el 01 al piso, el 02 solo por superficie, el 03 por
@@ -59,7 +59,7 @@ Ficha de cada uno en su carpeta: [`01-biblioteca/`](01-biblioteca/), [`02-cancha
 
 ```bash
 # 1. levantar el SUT
-git clone https://github.com/SantiagoMartinezCO/fitqa-demo-01.git
+git clone https://github.com/FACTORIT-COMMUNITY/fitqa-demo-01.git
 cd fitqa-demo-01 && npm install && PORT=3210 npm start
 
 # 2. confirmar que el catálogo describe al SUT (si esto falla, no midas nada)

@@ -1,6 +1,6 @@
 {
   "demo": "02-canchas",
-  "sut": "https://github.com/SantiagoMartinezCO/fitqa-demo-02",
+  "sut": "https://github.com/FACTORIT-COMMUNITY/fitqa-demo-02",
   "stack": "Python 3.13 + FastAPI + sqlite3 (stdlib) + Jinja2",
   "puerto": 3211,
   "reset": "POST /admin/reset",

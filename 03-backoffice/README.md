@@ -1,13 +1,13 @@
 # 03 — Back-office
 
-**Repo del SUT:** https://github.com/SantiagoMartinezCO/fitqa-demo-03
+**Repo del SUT:** https://github.com/FACTORIT-COMMUNITY/fitqa-demo-03
 
 Back-office de un e-commerce chico: catálogo, inventario multi-bodega, clientes, pedidos,
 pagos, envíos, cupones, reseñas y usuarios con roles. API en **Go + chi** sobre SQLite
 embebido; panel de administración en **Next.js**.
 
 ```bash
-git clone https://github.com/SantiagoMartinezCO/fitqa-demo-03.git
+git clone https://github.com/FACTORIT-COMMUNITY/fitqa-demo-03.git
 cd fitqa-demo-03
 go run ./cmd/api                        # API en :8080 (PORT lo cambia)
 cd web && npm install && npm run dev    # panel en :3000, apunta a NEXT_PUBLIC_API_URL

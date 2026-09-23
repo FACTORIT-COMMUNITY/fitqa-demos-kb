@@ -1,13 +1,13 @@
 # 02 — Reserva de canchas
 
-**Repo del SUT:** https://github.com/SantiagoMartinezCO/fitqa-demo-02
+**Repo del SUT:** https://github.com/FACTORIT-COMMUNITY/fitqa-demo-02
 
 API de reserva de canchas de fútbol 5 y 7: sedes, canchas, horarios semanales, reservas con
 estado, equipos, reseñas y un panel de gestión. Python 3.13 + FastAPI + `sqlite3` de la
 biblioteca estándar + Jinja2. Sin ORM, sin build, sin servicios externos.
 
 ```bash
-git clone https://github.com/SantiagoMartinezCO/fitqa-demo-02.git
+git clone https://github.com/FACTORIT-COMMUNITY/fitqa-demo-02.git
 cd fitqa-demo-02
 python -m venv .venv && .venv/Scripts/pip install -r requirements.txt
 .venv/Scripts/python -m uvicorn app.main:app --port 3211

@@ -70,7 +70,7 @@
     "precision": "bugs reportados que estan en sembrados con trampa=false / total de bugs reportados. Reportar TRAMPA-01 cuenta como falso positivo.",
     "acuerdo_de_severidad": "de los encontrados, cuantos coinciden con severidad_esperada"
   },
-  "repo": "https://github.com/SantiagoMartinezCO/fitqa-demo-01",
+  "repo": "https://github.com/FACTORIT-COMMUNITY/fitqa-demo-01",
   "magnitud": {
     "bucket": "pequeno",
     "S": 13,
