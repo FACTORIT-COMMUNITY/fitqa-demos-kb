@@ -74,8 +74,12 @@ desplegar fitqa-demo-01 "$TMP/fitqa-demo-01" \
   --set-build-env-vars GOOGLE_RUNTIME_VERSION=24
 
 # 02 - FastAPI. Un solo worker de uvicorn: cada worker tendria su propia base.
+# requirements.txt no fija versiones y las pantallas usan TemplateResponse(nombre, contexto),
+# firma que starlette 1.x ya no acepta: sin esta restriccion las 6 pantallas dan 500. La
+# restriccion se escribe solo en la copia temporal y pip la toma de PIP_CONSTRAINT.
+echo 'starlette<1.0' > "$TMP/fitqa-demo-02/restricciones-deploy.txt"
 desplegar fitqa-demo-02 "$TMP/fitqa-demo-02" \
-  --set-build-env-vars 'GOOGLE_RUNTIME_VERSION=3.13,GOOGLE_ENTRYPOINT=uvicorn app.main:app --host 0.0.0.0 --port $PORT'
+  --set-build-env-vars 'GOOGLE_RUNTIME_VERSION=3.13,PIP_CONSTRAINT=/workspace/restricciones-deploy.txt,GOOGLE_ENTRYPOINT=uvicorn app.main:app --host 0.0.0.0 --port $PORT'
 
 # 03 - API Go (chi). El CORS ya permite cualquier origen.
 desplegar fitqa-demo-03-api "$TMP/fitqa-demo-03" \
@@ -112,6 +116,7 @@ echo "== Comprobacion"
 fallos=0
 comprobar fitqa-demo-01 /health || fallos=$((fallos + 1))
 comprobar fitqa-demo-02 /health || fallos=$((fallos + 1))
+comprobar fitqa-demo-02 / || fallos=$((fallos + 1))
 comprobar fitqa-demo-03-api /health || fallos=$((fallos + 1))
 comprobar fitqa-demo-03-web /login || fallos=$((fallos + 1))
 exit "$fallos"

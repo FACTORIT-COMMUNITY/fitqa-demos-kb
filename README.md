@@ -99,6 +99,9 @@ comprueba que respondan.
 | `fitqa-demo-03-api` | 03 Back-office, API | https://fitqa-demo-03-api-o6q2dj7niq-uc.a.run.app |
 | `fitqa-demo-03-web` | 03 Back-office, panel | https://fitqa-demo-03-web-o6q2dj7niq-uc.a.run.app |
 
+La API del 03 no tiene ruta en `/`: la raíz responde `404 {"error":"ruta no encontrado"}`, igual
+que en local. Para verla viva, `/health`; para usarla desde el navegador, el panel.
+
 El paso 2 del ciclo se corre igual, contra la URL:
 `node 02-canchas/verificar.mjs https://fitqa-demo-02-o6q2dj7niq-uc.a.run.app`.
 
@@ -113,10 +116,18 @@ El paso 2 del ciclo se corre igual, contra la URL:
 | Label | `app=fitqa-demos` | Para filtrar el costo en la facturación |
 | Imágenes | repo `cloud-run-source-deploy` (Artifact Registry, `us-central1`) | Una regla de limpieza conserva solo la última imagen de cada `fitqa-demo*` |
 
-Por demo: el 01 se construye con Node 24; el 02 con Python 3.13 y un solo worker de uvicorn,
-porque cada worker tendría su propia base; el 03-api con `GOOGLE_BUILDABLE=./cmd/api`; el
+Por demo: el 01 se construye con Node 24; el 02 con Python 3.13, un solo worker de uvicorn,
+porque cada worker tendría su propia base, y `starlette<1.0`; el 03-api con `GOOGLE_BUILDABLE=./cmd/api`; el
 03-web con `NEXT_PUBLIC_API_URL` apuntando a la API. Esa URL queda fija en el build del panel,
 por eso el panel se despliega después de la API.
+
+**La restricción del 02.** Su `requirements.txt` no fija versiones y las seis pantallas llaman a
+`TemplateResponse(nombre, contexto)`, una firma que starlette 1.x ya no acepta. Con lo que
+resuelve pip hoy (`fastapi 0.141.1`, `starlette 1.7.0`) la API responde pero todas las pantallas
+dan 500, también instalando en local. El script escribe `starlette<1.0` en un archivo de la copia
+temporal y lo pasa con `PIP_CONSTRAINT`; así se instala `starlette 0.52.1`. El repo del SUT no
+se toca. `verificar.mjs` del 02 prueba solo la API y no detecta esto; por eso la comprobación
+final del script pide también la portada.
 
 ### Lo que cambia respecto de correrlo local
 
