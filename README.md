@@ -74,6 +74,80 @@ QA_BASE_URL=http://localhost:3210 fit-qa --project <ruta-al-clone> ...
 # 5. puntear el informe del agente contra verdad.json
 ```
 
+## Desplegar en Cloud Run
+
+Para correr el agente contra un SUT con URL pública, sin levantarlo en una máquina propia.
+[`deploy/cloud-run.sh`](deploy/cloud-run.sh) clona los tres demos en una carpeta temporal y
+los despliega desde el código fuente con buildpacks. **Los repos de los demos no llevan
+Dockerfile ni configuración de despliegue**: el agente los clona, y todo lo que haya adentro
+altera lo que mide.
+
+```bash
+bash deploy/cloud-run.sh                 # main de cada demo
+REF=<tag|commit> bash deploy/cloud-run.sh
+PROJECT=... REGION=... bash deploy/cloud-run.sh   # por defecto fit-qa-495414 / us-central1
+```
+
+Requiere `gcloud` autenticado con permiso de despliegue en el proyecto. Se puede volver a
+correr: cada corrida publica una revisión nueva de los mismos cuatro servicios y al final
+comprueba que respondan.
+
+| Servicio | Demo | URL |
+|---|---|---|
+| `fitqa-demo-01` | 01 Biblioteca | https://fitqa-demo-01-o6q2dj7niq-uc.a.run.app |
+| `fitqa-demo-02` | 02 Canchas | https://fitqa-demo-02-o6q2dj7niq-uc.a.run.app |
+| `fitqa-demo-03-api` | 03 Back-office, API | https://fitqa-demo-03-api-o6q2dj7niq-uc.a.run.app |
+| `fitqa-demo-03-web` | 03 Back-office, panel | https://fitqa-demo-03-web-o6q2dj7niq-uc.a.run.app |
+
+El paso 2 del ciclo se corre igual, contra la URL:
+`node 02-canchas/verificar.mjs https://fitqa-demo-02-o6q2dj7niq-uc.a.run.app`.
+
+### Configuración y por qué
+
+| | Valor | Por qué |
+|---|---|---|
+| Instancias | `min 0`, `max 1` | **`max 1` es obligatorio.** Cada demo guarda su base SQLite en la memoria del proceso: con dos instancias el estado queda partido entre ellas y aparecen defectos que no existen |
+| Facturación | por request (`--cpu-throttling`), 1 vCPU / 512Mi | Sin tráfico no se cobra CPU ni memoria |
+| Región | `us-central1` | El free tier de Cloud Run se aplica a precio Tier 1; `southamerica-east1` es Tier 2 |
+| Acceso | público (`allUsers`) | El agente hace HTTP sin credenciales de GCP |
+| Label | `app=fitqa-demos` | Para filtrar el costo en la facturación |
+| Imágenes | repo `cloud-run-source-deploy` (Artifact Registry, `us-central1`) | Una regla de limpieza conserva solo la última imagen de cada `fitqa-demo*` |
+
+Por demo: el 01 se construye con Node 24; el 02 con Python 3.13 y un solo worker de uvicorn,
+porque cada worker tendría su propia base; el 03-api con `GOOGLE_BUILDABLE=./cmd/api`; el
+03-web con `NEXT_PUBLIC_API_URL` apuntando a la API. Esa URL queda fija en el build del panel,
+por eso el panel se despliega después de la API.
+
+### Lo que cambia respecto de correrlo local
+
+- **Arranque en frío = reinicio del estado.** Sin tráfico, Cloud Run apaga la instancia y la
+  siguiente petición levanta un proceso nuevo con la base en la semilla. Es equivalente a un
+  `POST /admin/reset`, con una diferencia: **invalida los tokens de los demos 02 y 03**. En el 02
+  porque las sesiones viven en la base; en el 03 porque la clave de firma JWT se genera al
+  arrancar el proceso, así que acá sí se pierden las sesiones, cosa que un reset no hace.
+  La primera petición tras el apagado tarda algunos segundos más.
+- **Para una medición larga**, fijar una instancia caliente mientras dura y volverla a 0 al
+  terminar. Mientras está en 1 se cobra la instancia aunque no haya tráfico:
+
+  ```bash
+  gcloud run services update fitqa-demo-03-api --min-instances 1 --region us-central1 --project fit-qa-495414
+  # ... corrida ...
+  gcloud run services update fitqa-demo-03-api --min-instances 0 --region us-central1 --project fit-qa-495414
+  ```
+
+- **`/admin/reset` y `/admin/seed-info` quedan públicos en internet**, igual que en local. Son
+  datos de semilla ficticios; cualquiera puede resetear un demo en medio de una corrida.
+
+### Apagar
+
+Los servicios no cuestan nada mientras no reciben tráfico. Si se decide sacarlos:
+
+```bash
+for s in fitqa-demo-01 fitqa-demo-02 fitqa-demo-03-api fitqa-demo-03-web; do
+  gcloud run services delete "$s" --region us-central1 --project fit-qa-495414
+done
+```
+
 ## Cómo se puntea una corrida
 
 Tres números, y son el resultado de la corrida — no el informe del agente:
