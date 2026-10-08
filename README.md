@@ -24,7 +24,7 @@ Los enlaces van en una sola dirección: de acá al demo, nunca del demo hacia ac
 |---|---|---|---|---|---|---|
 | 01 | Biblioteca de barrio | [fitqa-demo-01](https://github.com/FACTORIT-COMMUNITY/fitqa-demo-01) | [fitqa-demo-01](https://fitqa-demo-01-o6q2dj7niq-uc.a.run.app) | Node 24 + Express + `node:sqlite` | **pequeño** (S=13, D=356) | 3 + 1 trampa |
 | 02 | Reserva de canchas | [fitqa-demo-02](https://github.com/FACTORIT-COMMUNITY/fitqa-demo-02) | [fitqa-demo-02](https://fitqa-demo-02-o6q2dj7niq-uc.a.run.app) | Python 3.13 + FastAPI + `sqlite3` | **mediano** (S=68, D=2.747) | 8 + 2 trampas |
-| 03 | Back-office | [fitqa-demo-03](https://github.com/FACTORIT-COMMUNITY/fitqa-demo-03) | [api](https://fitqa-demo-03-api-o6q2dj7niq-uc.a.run.app) · [web](https://fitqa-demo-03-web-o6q2dj7niq-uc.a.run.app) | Go + chi + Next | **grande** (S=107, D=5.940) | _catálogo pendiente_ + 3 trampas |
+| 03 | Back-office | [fitqa-demo-03](https://github.com/FACTORIT-COMMUNITY/fitqa-demo-03) | [api](https://fitqa-demo-03-api-o6q2dj7niq-uc.a.run.app) · [web](https://fitqa-demo-03-web-o6q2dj7niq-uc.a.run.app) | Go + chi + Next | **grande** (S=107, D=5.940) | 16 + 4 trampas |
 
 Los tres medidos el 2026-09-23 sobre su clone, con la misma skill y la misma versión. Cada uno
 cae en su bucket por un camino distinto: el 01 al piso, el 02 solo por superficie, el 03 por
@@ -54,6 +54,24 @@ Ficha de cada uno en su carpeta: [`01-biblioteca/`](01-biblioteca/), [`02-cancha
 - **Las trampas**: comportamientos que parecen defectos y están documentados en el SUT.
   Reportarlos cuenta como falso positivo.
 - **Un verificador ejecutable** que confirma que cada entrada del catálogo reproduce de verdad.
+- **Los requisitos y criterios de aceptación** del sistema (`requisitos-y-criterios-de-aceptacion.md`).
+
+## Requisitos y criterios de aceptación
+
+Cada carpeta de demo tiene un `requisitos-y-criterios-de-aceptacion.md`: el documento que un
+cliente le entregaría a QA. Describe cómo debe comportarse el sistema —roles y permisos,
+entidades, endpoints, pantallas, operaciones de soporte como el reset, y cada regla con su
+criterio verificable (entrada → resultado esperado)— y nada más.
+
+- [`01-biblioteca/requisitos-y-criterios-de-aceptacion.md`](01-biblioteca/requisitos-y-criterios-de-aceptacion.md)
+- [`02-canchas/requisitos-y-criterios-de-aceptacion.md`](02-canchas/requisitos-y-criterios-de-aceptacion.md)
+- [`03-backoffice/requisitos-y-criterios-de-aceptacion.md`](03-backoffice/requisitos-y-criterios-de-aceptacion.md)
+
+Se entregan al agente como requisitos en las ejecuciones por URL. Se escriben solo a partir de las reglas del README del SUT:
+no mencionan que el sistema es un demo, ni el catálogo, ni describen ningún comportamiento
+incorrecto, y no agregan reglas que el README no tenga. Por eso una regla que el README no
+declara —como el orden de `/productos` o la paginación de `/pedidos` del demo 03— tampoco
+aparece en el documento.
 
 ## El ciclo completo
 
