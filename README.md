@@ -232,8 +232,10 @@ Lo aprendido construyendo el primero:
    confirmación. Eso distingue un agente de un linter.
 3. **Al menos una trampa**, documentada y justificada en el README del SUT. Si no está
    documentada no es una trampa, es un bug.
-4. **Que cada defecto contradiga una regla escrita** en el README del SUT. Un defecto que no
-   contradice nada es una diferencia de opinión, y no se puede puntear.
+4. **Que cada defecto contradiga una regla escrita** en el README del SUT **o sea incoherente
+   por sí mismo**: un `total` que no coincide con los elementos devueltos, un parámetro de orden
+   que se acepta y no se aplica. Un defecto que no cumple ninguna de las dos es una diferencia de
+   opinión, y no se puede puntear.
 5. **Semilla determinística y endpoint de reset.** Sin eso, la iteración 7 prueba sobre lo que
    dejó la 6 y no se distingue un defecto de una contaminación.
 6. **Verificá el catálogo antes de usarlo.** Un catálogo que miente convierte cualquier punteo
