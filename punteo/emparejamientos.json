@@ -118,6 +118,27 @@
       "65": {"defecto": null, "clase": "real_no_sembrado", "grupo": "tildes", "nota": "mensajes de API: 'ruta no encontrado' (concordancia) y sin tildes"},
       "66": {"defecto": null, "clase": "fuera_sin_regla", "grupo": "columnas-ui", "nota": "columnas sin etiqueta e ids crudos en Cliente/Vendedor"},
       "67": {"defecto": null, "clase": "real_no_sembrado", "grupo": "tildes", "nota": "dashboard sin tildes"}
+    },
+    "20261008-151410-2d99": {
+      "3": {"defecto": "BIB-02", "clase": "sembrado", "nota": "GET /libros total 8 con 7 libros, falta el id 1; OFFSET desde+1 en src/libros.js:53. El automatico proponia BIB-01", "principal": true},
+      "4": {"defecto": "BIB-02", "clase": "sembrado", "nota": "recorrido limite=3 desde 0/3/6 recoge ids 2-8, suma 7 vs total 8"},
+      "6": {"defecto": "BIB-02", "clase": "sembrado", "nota": "cada orden omite el primer elemento de la secuencia ordenada con total 8; mismo OFFSET desde+1 de src/libros.js:53"},
+      "9": {"defecto": "BIB-01", "clase": "sembrado", "nota": "segundo prestamo del libro 2 da 201 y disponibles -1; guard disponibles < 0 en src/prestamos.js:51"},
+      "14": {"defecto": null, "clase": "real_no_sembrado", "grupo": "isbn-put", "nota": "PUT /libros/4 con isbn ya registrado da 500; README Unicidad exige 409. actualizar() en src/libros.js:90-103 no verifica isbn, crear() si (libros.js:73-74)"},
+      "17": {"defecto": "BIB-03", "clase": "sembrado", "nota": "DELETE /libros/3 con prestamo vigente 204 y GET /prestamos queda en 0; borrar() en src/libros.js:105-112 sin chequeo de prestamos"},
+      "19": {"defecto": null, "clase": "fuera_sin_regla", "grupo": "desde-mayor-total", "nota": "desde=8 y desde=100 dan 200 con lista vacia. El README no define el rango de desde; el codigo lo fija en 0..1e6 (src/libros.js:40) y el propio evaluador declara la ambiguedad"},
+      "20": {"defecto": null, "clase": "real_sin_regla", "grupo": "tildes", "nota": "datos de semilla sin tilde (Pedro Paramo, Cien anios, Bruno Diaz) en src/db.js:38-50; CLAUDE.md:37-38 del SUT exige tildes en el texto que ve el usuario y README:28-29 declara Bruno Diaz y Dario Pena con tilde"}
+    },
+    "20261008-151411-b72a": {
+      "17": {"defecto": "CAN-06", "clase": "sembrado", "nota": "orden=precio_hora devuelve 100000 primero y 9000 ultimo; sort por str() en app/rutas/canchas.py:74", "principal": true},
+      "18": {"defecto": "CAN-06", "clase": "sembrado", "nota": "direccion=desc invierte el mismo orden lexicografico; el evaluador lo declara mismo defecto que #17"},
+      "21": {"defecto": "CAN-01", "clase": "sembrado", "nota": "segunda reserva pendiente sobre la misma franja da 201; choque filtra estado = 'confirmada' en app/rutas/reservas.py:171. El automatico proponia CAN-07"},
+      "26": {"defecto": "CAN-02", "clase": "sembrado", "nota": "confirmar desde cancelada da 200; confirmar() en app/rutas/reservas.py:328 solo excluye completada y no-show"},
+      "30": {"defecto": "CAN-07", "clase": "sembrado", "nota": "cancha 5 en mantenimiento con libres=5 y POST /reservas 409; disponibilidad() en app/rutas/canchas.py:179-200 no consulta canchas.estado"},
+      "36": {"defecto": "CAN-08", "clase": "sembrado", "nota": "reserva cancelada cuenta en /panel/ocupacion (reservadas 2, 40.0); COUNT sin estado en app/rutas/panel.py:85. El automatico proponia TRAMPA-02 por el DELETE de limpieza"},
+      "38": {"defecto": "CAN-04", "clase": "sembrado", "nota": "GET /reservas/2 de bruno con sesion de ana da 200; detalle() en app/rutas/reservas.py:255-258 no llama a _puede_gestionar()"},
+      "51": {"defecto": null, "clase": "real_sin_regla", "grupo": "tildes", "nota": "rotulos visibles sin tilde (Iniciar sesion, Direccion, Version); CLAUDE.md:67-68 del SUT exige tildes en el texto que ve el usuario"},
+      "52": {"defecto": null, "clase": "real_sin_regla", "grupo": "tildes", "nota": "mensajes de API sin tilde (datos invalidos, hace falta iniciar sesion en app/auth.py:66); CLAUDE.md:67-68 del SUT. El voseo 'podes' (app/rutas/resenas.py:65) no tiene regla escrita"}
     }
   }
 }
