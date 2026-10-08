@@ -305,7 +305,7 @@
   ],
   "como_se_puntea": {
     "recall": "sembrados con trampa=false que el agente reporto / 16",
-    "precision": "bugs reportados que estan en sembrados con trampa=false / total de bugs reportados. Reportar cualquiera de las 4 TRAMPA-* cuenta como falso positivo.",
+    "precision": "(bugs reportados que estan en sembrados con trampa=false + hallazgos adicionales) / total de bugs reportados. Un hallazgo adicional es un defecto real del sistema fuera del catalogo (clases real_no_sembrado y real_sin_regla de punteo/emparejamientos.json). Reportar cualquiera de las 4 TRAMPA-* cuenta como falso positivo.",
     "acuerdo_de_severidad": "de los encontrados, cuantos coinciden con severidad_esperada"
   },
   "repo": "https://github.com/FACTORIT-COMMUNITY/fitqa-demo-03",

@@ -89,7 +89,8 @@ python medir.py <ruta-al-clone>
 # 4. correr el agente con los parámetros que salieron del paso 3
 QA_BASE_URL=http://localhost:3210 fit-qa --project <ruta-al-clone> ...
 
-# 5. puntear el informe del agente contra verdad.json
+# 5. puntear el informe del agente contra verdad.json (ver "Cómo se puntea una corrida")
+python punteo/puntear.py --verdad <kb>/01-biblioteca/verdad.json <run>.json
 ```
 
 ## Desplegar en Cloud Run
@@ -182,10 +183,44 @@ done
 Tres números, y son el resultado de la corrida — no el informe del agente:
 
 - **Recall** — sembrados con `trampa: false` que el agente reportó, sobre el total de sembrados.
-- **Precisión** — bugs reportados que están en el catálogo, sobre el total de bugs reportados.
-  **Reportar una trampa cuenta como falso positivo.** Sin al menos una trampa se mide recall y
-  nunca precisión, y un agente que reporta todo saca 100%.
+- **Precisión** — reportes que son aciertos o hallazgos adicionales, sobre el total de defectos
+  reportados. **Reportar una trampa cuenta como falso positivo.** Sin al menos una trampa se
+  mide recall y nunca precisión, y un agente que reporta todo saca 100%.
 - **Acuerdo de severidad** — de los encontrados, cuántos coinciden con `severidad_esperada`.
+
+Un defecto reportado es una evaluación con veredicto `real-bug`. Cada uno se empareja a mano
+con el catálogo en [`punteo/emparejamientos.json`](punteo/emparejamientos.json) y cae en una de
+tres categorías:
+
+| Categoría | Cuándo | Clases en `emparejamientos.json` |
+|---|---|---|
+| Acierto | corresponde a un sembrado con `trampa: false` | `sembrado` |
+| Hallazgo adicional | no está en el catálogo y es un defecto real del sistema | `real_no_sembrado` (contradice una regla escrita del SUT), `real_sin_regla` (defecto objetivo verificado sin regla escrita) |
+| Falso positivo | es una trampa, o no es un defecto real | `trampa`, `falso_positivo`, `fuera_sin_regla` (expectativa del agente sin contrato del SUT) |
+
+**Un hallazgo adicional no es un falso positivo.** Un catálogo incompleto no puede castigar al
+agente por encontrar un defecto que existe; el adicional suma en la precisión y se informa
+aparte, como candidato a entrar al catálogo.
+
+### Correr el punteo
+
+[`punteo/puntear.py`](punteo/puntear.py) (Python 3, sin dependencias) toma el JSON de cada
+ejecución tal como lo devuelve `GET /api/runs/{id}` y reporta recall, precisión, aciertos,
+hallazgos adicionales, falsos positivos, trampas reportadas y acuerdo de severidad.
+
+```bash
+# con las ejecuciones ya descargadas
+python punteo/puntear.py --verdad 03-backoffice/verdad.json run-a.json run-b.json
+
+# por id: las baja de la plataforma y las guarda en --cache
+FITQA_BASE_URL=https://<plataforma>/api FITQA_TOKEN=<token> \
+  python punteo/puntear.py --verdad 02-canchas/verdad.json --cache .cache <run_id>
+```
+
+Un reporte sin entrada en `emparejamientos.json` recibe un emparejamiento automático por
+evidencia (archivo, función, endpoint, palabras del síntoma) y sale marcado como aviso; si ni
+eso alcanza, sale como `SIN DECIDIR` y no suma como acierto. El emparejamiento manual manda
+siempre. `--json salida.json` escribe el detalle completo.
 
 ## Reglas para sembrar un defecto
 

@@ -1,0 +1,123 @@
+{
+  "_doc": "Emparejamiento manual de cada evaluacion real-bug con el catalogo, por run_id y test_id. Manda sobre el automatico de puntear.py. defecto: id del sembrado/trampa o null. clase: sembrado (acierto) | trampa (falso positivo) | real_no_sembrado (hallazgo adicional: defecto real que contradice una regla escrita del SUT, README o CLAUDE.md) | real_sin_regla (hallazgo adicional: defecto objetivo verificado sin regla escrita) | fuera_sin_regla (falso positivo: expectativa inferida por el agente, sin contrato del SUT) | falso_positivo (contradice comportamiento documentado o error del agente). grupo: agrupa reportes del mismo defecto fuera del catalogo. principal: evaluacion cuya severidad se usa cuando varias apuntan al mismo sembrado.",
+  "runs": {
+    "20261007-210744-7460": {
+      "2": {"defecto": "BIB-02", "clase": "sembrado", "nota": "tabla del catalogo sin el libro 1; OFFSET desde+1 en src/libros.js:53", "principal": true},
+      "3": {"defecto": "BIB-02", "clase": "sembrado", "nota": "desde=0 devuelve ids 2,3,4"},
+      "4": {"defecto": "BIB-02", "clase": "sembrado", "nota": "suma de paginas 7 vs total 8"},
+      "12": {"defecto": "BIB-03", "clase": "sembrado", "nota": "DELETE /libros/8 con prestamo activo 204 y GET /prestamos vacio; libros.js borrar()"},
+      "16": {"defecto": "BIB-01", "clase": "sembrado", "nota": "guard disponibles < 0 en prestamos.js crear(); libro 2 queda en -1"},
+      "10": {"defecto": null, "clase": "real_no_sembrado", "grupo": "isbn-put", "nota": "PUT /libros/2 con isbn duplicado da 500; README Unicidad exige 409. Mismo hallazgo que la regla 7 del README de la KB ya describe y que verdad.json no incorpora"}
+    },
+    "20261007-214621-eb66": {
+      "1": {"defecto": "BIB-02", "clase": "sembrado", "nota": "GET /libros total 8 con 7 libros; falta el id 1"},
+      "14": {"defecto": null, "clase": "real_sin_regla", "grupo": "xss", "nota": "XSS almacenado: POST /libros acepta HTML y public/index.html lo inserta con innerHTML; ejecucion verificada (window.__xss===1)"},
+      "15": {"defecto": null, "clase": "fuera_sin_regla", "grupo": "cabeceras", "nota": "ausencia de cabeceras de seguridad; el SUT no promete hardening"},
+      "16": {"defecto": null, "clase": "falso_positivo", "nota": "PUT /libros/:id figura en el README como modificacion parcial y el SUT declara no tener auth; el agente lo trato como endpoint no documentado"},
+      "17": {"defecto": null, "clase": "real_sin_regla", "grupo": "agotado", "nota": "la pagina marca agotado con ejemplares===0 en vez de disponibles===0; incoherencia verificable en public/index.html, sin regla escrita sobre la marca"},
+      "18": {"defecto": null, "clase": "real_no_sembrado", "grupo": "tildes", "nota": "mensajes sin tilde; CLAUDE.md del SUT exige tildes en el texto que ve el usuario"}
+    },
+    "20261007-024532-1e8b": {
+      "5": {"defecto": "BIB-02", "clase": "sembrado", "nota": "recorrido paginado 7 vs total 8", "principal": true},
+      "6": {"defecto": "BIB-02", "clase": "sembrado", "nota": "desde=0 sin el id 1"},
+      "7": {"defecto": "BIB-02", "clase": "sembrado", "nota": "GET /libros por defecto sin el id 1"},
+      "8": {"defecto": "BIB-02", "clase": "sembrado", "nota": "con orden distinto de id se pierde la primera fila del orden"},
+      "29": {"defecto": "BIB-02", "clase": "sembrado", "nota": "tabla web con 7 filas"},
+      "12": {"defecto": "BIB-01", "clase": "sembrado", "nota": "segundo prestamo del libro 2 da 201 y disponibles -1", "principal": true},
+      "13": {"defecto": "BIB-01", "clase": "sembrado", "nota": "tercer prestamo del libro 1 da 201"},
+      "25": {"defecto": "BIB-03", "clase": "sembrado", "nota": "DELETE /libros/1 con prestamo activo 204; GET /prestamos queda en 0"},
+      "24": {"defecto": null, "clase": "real_no_sembrado", "grupo": "ejemplares-put", "nota": "PUT /libros/1 {ejemplares:0} con un prestamo activo deja disponibles -1; README Disponibilidad 'nunca puede ser negativo'. Segunda puerta de la misma regla de BIB-01, no sembrada"},
+      "31": {"defecto": null, "clase": "real_sin_regla", "grupo": "xss", "nota": "XSS almacenado via titulo, innerHTML en public/index.html:27-30"},
+      "35": {"defecto": null, "clase": "real_no_sembrado", "grupo": "tildes", "nota": "mensajes de error sin tilde; regla de CLAUDE.md del SUT"}
+    },
+    "20261007-042835-2673": {
+      "3": {"defecto": "BIB-02", "clase": "sembrado", "nota": "tabla sin el libro 1"},
+      "4": {"defecto": "BIB-02", "clase": "sembrado", "nota": "GET /libros total 8 con 7 libros", "principal": true},
+      "8": {"defecto": null, "clase": "falso_positivo", "grupo": "patch-devolucion", "nota": "afirma que la devolucion es imposible porque PATCH /prestamos/:id da 404; la ruta documentada es POST /prestamos/:id/devolucion. El stock negativo que acompana es arrastre de prestamos huerfanos (BIB-03) en ids reutilizados"},
+      "9": {"defecto": "BIB-03", "clase": "sembrado", "nota": "manifestacion secundaria de BIB-03: prestamos huerfanos de libros borrados quedan asociados al id 9 reutilizado y el libro nuevo nace con disponibles negativo"},
+      "12": {"defecto": null, "clase": "falso_positivo", "grupo": "patch-devolucion", "nota": "centro del reporte: PATCH /prestamos/:id 404 (ruta inexistente por diseno)"},
+      "13": {"defecto": null, "clase": "falso_positivo", "grupo": "patch-devolucion", "nota": "centro del reporte: PATCH /prestamos/:id 404"},
+      "16": {"defecto": null, "clase": "falso_positivo", "grupo": "patch-devolucion", "nota": "prueba PATCH, PUT, POST /prestamos/6 y POST /prestamos/6/devolver; nunca la ruta documentada /devolucion"},
+      "22": {"defecto": null, "clase": "real_sin_regla", "grupo": "xss", "nota": "XSS almacenado ejecutado en vivo"},
+      "23": {"defecto": null, "clase": "fuera_sin_regla", "grupo": "cabeceras", "nota": "cabeceras de seguridad"},
+      "26": {"defecto": null, "clase": "real_no_sembrado", "grupo": "tildes", "nota": "datos de semilla visibles sin tilde (Cien anios, Pedro Paramo); regla de CLAUDE.md del SUT"},
+      "27": {"defecto": null, "clase": "real_no_sembrado", "grupo": "tildes", "nota": "datos y mensajes sin tilde"},
+      "30": {"defecto": "BIB-03", "clase": "sembrado", "nota": "DELETE /libros/9 deja GET /prestamos de 7 a 0 incluidos activos", "principal": true}
+    },
+    "20261007-234228-f5ba": {
+      "18": {"defecto": "CAN-01", "clase": "sembrado", "nota": "choque filtra solo confirmada; dos pendientes en la misma franja"},
+      "23": {"defecto": "CAN-02", "clase": "sembrado", "nota": "confirmar revive una cancelada"},
+      "27": {"defecto": "CAN-05", "clase": "sembrado", "nota": "range(len(salida)-1) en canchas.py; ultima franja siempre libre"},
+      "30": {"defecto": "CAN-03", "clase": "sembrado", "nota": "COUNT antes del filtro estado"},
+      "34": {"defecto": "CAN-06", "clase": "sembrado", "nota": "sort por str(precio_hora)"},
+      "41": {"defecto": "CAN-08", "clase": "sembrado", "nota": "ocupacion cuenta canceladas; panel.py COUNT sin estado"},
+      "52": {"defecto": "CAN-04", "clase": "sembrado", "nota": "detalle de reserva ajena sin _puede_gestionar"},
+      "63": {"defecto": null, "clase": "real_no_sembrado", "grupo": "tildes", "nota": "plantillas sin tilde; CLAUDE.md:67 del SUT exige tildes en texto visible"},
+      "64": {"defecto": null, "clase": "real_no_sembrado", "grupo": "tildes", "nota": "mensajes de API sin tilde y voseo ('podes')"}
+    },
+    "20261007-234230-acf3": {
+      "14": {"defecto": "CAN-06", "clase": "sembrado", "nota": "orden lexicografico de precio_hora. La afirmacion accesoria 'dir se ignora' es error del agente: el parametro es direccion"},
+      "15": {"defecto": null, "clase": "falso_positivo", "nota": "usa limit en lugar de limite; el SUT ignora parametros desconocidos y limite fuera de rango si da 400"},
+      "26": {"defecto": "CAN-01", "clase": "sembrado", "nota": "segunda reserva pendiente sobre franja tomada por otra pendiente"},
+      "34": {"defecto": null, "clase": "fuera_sin_regla", "grupo": "cabeceras", "nota": "cabeceras de seguridad; en la ejecucion de repositorio el mismo hallazgo se descarto como false-positive"},
+      "38": {"defecto": null, "clase": "fuera_sin_regla", "grupo": "sede-inactiva", "nota": "cancha habilitada de sede activa:false acepta reservas. El README solo regula el estado de la cancha; sobre sedes inactivas no hay regla. Candidato a decision del catalogo"},
+      "44": {"defecto": null, "clase": "real_no_sembrado", "grupo": "tildes", "nota": "mensaje 'la cancha esta mantenimiento' (falta 'en') y falta de tildes; CLAUDE.md del SUT"}
+    },
+    "20261007-042834-0d60": {
+      "17": {"defecto": "CAN-01", "clase": "sembrado", "nota": "dos POST iguales 201/201"},
+      "19": {"defecto": "CAN-05", "clase": "sembrado", "nota": "ultima franja libre con reserva confirmada"},
+      "21": {"defecto": "CAN-02", "clase": "sembrado", "nota": "confirmada->confirmada aceptado; misma causa (confirmar no usa TRANSICIONES)"},
+      "22": {"defecto": "CAN-02", "clase": "sembrado", "nota": "cancelada->confirmada", "principal": true},
+      "26": {"defecto": "CAN-03", "clase": "sembrado", "nota": "total sin filtro estado"},
+      "28": {"defecto": "CAN-04", "clase": "sembrado", "nota": "lectura de reserva ajena"},
+      "29": {"defecto": "CAN-06", "clase": "sembrado", "nota": "orden lexicografico"},
+      "31": {"defecto": "CAN-07", "clase": "sembrado", "nota": "cancha en mantenimiento con 5 franjas libres"},
+      "35": {"defecto": "CAN-08", "clase": "sembrado", "nota": "ocupacion cuenta cancelada y no-show"}
+    },
+    "20261007-100548-76cd": {
+      "17": {"defecto": "CAN-01", "clase": "sembrado", "nota": "reservas solapadas sobre franja pendiente"},
+      "27": {"defecto": "CAN-06", "clase": "sembrado", "nota": "orden lexicografico de precio_hora"},
+      "28": {"defecto": null, "clase": "fuera_sin_regla", "grupo": "fecha-pasada", "nota": "reserva con fecha pasada aceptada; el README no lo prohibe y la semilla tiene reservas pasadas"},
+      "30": {"defecto": null, "clase": "fuera_sin_regla", "grupo": "sede-inactiva", "nota": "cancha de sede cerrada acepta reservas; sin regla escrita"},
+      "32": {"defecto": "CAN-05", "clase": "sembrado", "nota": "franja 22-23 libre con reserva activa; el duplicado aceptado sobre esa franja tambien es CAN-01"},
+      "42": {"defecto": null, "clase": "fuera_sin_regla", "grupo": "cabeceras", "nota": "cabeceras de seguridad"},
+      "43": {"defecto": "CAN-04", "clase": "sembrado", "nota": "GET /reservas/8 de bruno con token de ana"},
+      "53": {"defecto": null, "clase": "real_no_sembrado", "grupo": "tildes", "nota": "copia visible sin tildes; CLAUDE.md del SUT"},
+      "54": {"defecto": null, "clase": "real_no_sembrado", "grupo": "tildes", "nota": "'datos invalidos' sin tilde y perdida del detalle por campo en la UI"},
+      "56": {"defecto": null, "clase": "fuera_sin_regla", "grupo": "formato-precio", "nota": "precio sin separador de miles; sin regla escrita"}
+    },
+    "20261008-022256-be2e": {
+      "21": {"defecto": "BO-07", "clase": "sembrado", "nota": "impuestos sobre subtotal; pedidos.go:312"},
+      "24": {"defecto": "BO-03", "clase": "sembrado", "nota": "idempotency_key repetida aplica dos veces"},
+      "27": {"defecto": "BO-15", "clase": "sembrado", "nota": "producto 7 no publicado aceptado en POST /pedidos y POST /pedidos/{id}/items", "principal": true},
+      "63": {"defecto": "BO-15", "clase": "sembrado", "nota": "producto recien creado sin publicar vendido"},
+      "32": {"defecto": "BO-12", "clase": "sembrado", "nota": "monto distinto del total aceptado"},
+      "30": {"defecto": "BO-11", "clase": "sembrado", "nota": "estado=pagado devuelve lista vacia"},
+      "36": {"defecto": "BO-09", "clase": "sembrado", "nota": "pendiente->entregado aceptado"},
+      "47": {"defecto": "BO-16", "clase": "sembrado", "nota": "email en mayusculas aceptado"},
+      "44": {"defecto": "BO-13", "clase": "sembrado", "nota": "auditoria siempre vacia"},
+      "45": {"defecto": "BO-14", "clase": "sembrado", "nota": "confirmar pago no notifica al vendedor"},
+      "50": {"defecto": "BO-10", "clase": "sembrado", "nota": "borrar la principal no promueve otra. El alta si desmarca; la edicion (BO-08) no se probo"},
+      "51": {"defecto": "BO-05", "clase": "sembrado", "nota": "DELETE /categorias/1 con productos 204"},
+      "55": {"defecto": "BO-02", "clase": "sembrado", "nota": "vendedor cancela pedido de otro vendedor"},
+      "67": {"defecto": "BO-01", "clase": "sembrado", "nota": "POST /pagos/{id}/confirmar montado bajo RequirePermiso(pedidos.gestionar) en cmd/api/main.go; probado con vendedor, el catalogo lo describe con operador. Misma causa"},
+      "77": {"defecto": "BO-06", "clase": "sembrado", "nota": "hallazgo (b): pag.Desde+1 en pedidos.go:79, falta el pedido 1. La parte (a) limit/offset la descarta el propio evaluador"},
+      "78": {"defecto": null, "clase": "real_no_sembrado", "grupo": "tildes", "nota": "mensajes de error sin tilde; CLAUDE.md del SUT"}
+    },
+    "20261008-022258-21f9": {
+      "44": {"defecto": null, "clase": "fuera_sin_regla", "grupo": "email-prellenado", "nota": "campo Email de /login prellenado con la cuenta admin. Sin regla escrita, y el SUT publica todas las credenciales en GET /admin/seed-info por diseno"},
+      "55": {"defecto": null, "clase": "real_no_sembrado", "grupo": "tildes", "nota": "panel sin tildes ('Sesion activa', 'mayoria'); CLAUDE.md del SUT"},
+      "56": {"defecto": null, "clase": "real_no_sembrado", "grupo": "tildes", "nota": "mensajes de API sin tilde"},
+      "58": {"defecto": null, "clase": "fuera_sin_regla", "grupo": "estados-ui", "nota": "fallos de carga silenciosos en el panel; sin regla escrita"}
+    },
+    "20261008-052424-a825": {
+      "30": {"defecto": null, "clase": "fuera_sin_regla", "grupo": "formato-fecha", "nota": "columna Creado con ISO crudo"},
+      "35": {"defecto": null, "clase": "falso_positivo", "nota": "precio unitario 7999 en vez de 8999: README 'Listas de precio por cliente' (el precio por cliente manda). GET /precios-cliente devuelve cliente 1 / producto 1 = 7999"},
+      "58": {"defecto": null, "clase": "fuera_sin_regla", "grupo": "longitud-nombre", "nota": "nombre de 10000 caracteres aceptado; sin regla de longitud"},
+      "64": {"defecto": null, "clase": "real_no_sembrado", "grupo": "tildes", "nota": "panel sin tildes y etiqueta 'Password' en ingles"},
+      "65": {"defecto": null, "clase": "real_no_sembrado", "grupo": "tildes", "nota": "mensajes de API: 'ruta no encontrado' (concordancia) y sin tildes"},
+      "66": {"defecto": null, "clase": "fuera_sin_regla", "grupo": "columnas-ui", "nota": "columnas sin etiqueta e ids crudos en Cliente/Vendedor"},
+      "67": {"defecto": null, "clase": "real_no_sembrado", "grupo": "tildes", "nota": "dashboard sin tildes"}
+    }
+  }
+}
