@@ -17,7 +17,7 @@
         "login como bruno.salas@backoffice.demo (operador)",
         "POST /pagos/{id}/confirmar sobre un pago pendiente -> 200 (deberia ser 403)"
       ],
-      "contradice": "README, seccion Roles y permisos: las acciones financieras estan gateadas por permiso, no por conveniencia operativa",
+      "contradice": "README, seccion Roles y permisos: 'Cada uno tiene un conjunto de permisos asignado (`GET /roles` los lista). Un rol sin el permiso que una accion requiere recibe 403.' El permiso pagos.confirmar existe y no esta asignado al operador (internal/store/seed.go:60-67: operador = productos/categorias/inventario/pedidos.gestionar + cupones.gestionar; vendedor = pedidos.gestionar + pedidos.cancelar); es el que protege anular un pago y reembolsar un pedido (cmd/api/main.go:141-142 y 154-156), mientras que confirmar un pago quedo bajo pedidos.gestionar (main.go:146-153). El README tambien lista 'confirmar o anular un pago' entre las acciones administrativas sensibles (seccion Auditoria y notificaciones)",
       "por_que_vale": "es un bypass de autorizacion real: el endpoint exige auth pero no el permiso correcto, y no hay ningun 500 ni sintoma visible salvo revisando quien pudo hacer que",
       "trampa": false
     },
@@ -54,14 +54,14 @@
     },
     {
       "id": "BO-04",
-      "ubicacion": "internal/handlers/productos.go, List(): valida `orden` contra ordenesProductoValidas pero el ORDER BY de la consulta esta hardcodeado a p.id",
-      "clase": "off-by-one",
+      "ubicacion": "internal/handlers/productos.go, List(): valida `orden` contra ordenesProductoValidas (productos.go:48, 400 si no es id|nombre|precio), descarta la columna resuelta con `_ = columnaOrden` (productos.go:81) y ordena siempre por p.id (productos.go:85)",
+      "clase": "orden",
       "severidad_esperada": "S3",
       "sintoma": "GET /productos?orden=nombre responde 200 (no 400) pero el resultado sigue ordenado por id, no alfabeticamente",
       "repro": [
         "GET /productos?orden=nombre&limite=10 -> los nombres no vienen en orden alfabetico, vienen en el mismo orden que sin el parametro"
       ],
-      "contradice": "implicito por el propio parametro documentado y validado (acepta y no rechaza id|nombre|precio) sin aplicar el valor que no sea el default",
+      "contradice": "ninguna regla escrita del README del SUT: el parametro `orden` de /productos no figura ahi. La contradiccion es con el contrato que la propia API expone: acepta id|nombre|precio y rechaza con 400 'orden invalido' cualquier otro valor, pero el valor aceptado se ignora",
       "por_que_vale": "responde 200 con datos que parecen validos; solo se nota comparando contra el orden esperado",
       "trampa": false
     },
@@ -138,6 +138,7 @@
         "POST /envios/{id}/actualizar-estado {estado:\"entregado\"} -> 200 (deberia ser 409)"
       ],
       "contradice": "README, seccion Envios: 'un envio solo puede marcarse entregado despues de haber pasado por en_transito'",
+      "solo_por_api": "el panel aplica la regla y lo tapa: con el envio en pendiente solo ofrece el formulario de tracking que manda actualizar-estado con estado en_transito (web/app/pedidos/[id]/page.tsx:149-152), y el boton 'Marcar entregado' solo aparece con el envio en en_transito (page.tsx:154-159). El salto pendiente -> entregado solo se reproduce llamando a POST /envios/{id}/actualizar-estado por la API",
       "por_que_vale": "el estado final (entregado) es indistinguible del caso correcto salvo revisando el historial de transiciones",
       "trampa": false
     },
@@ -183,6 +184,7 @@
         "POST /pagos {pedido_id, monto_centavos:1, metodo:\"efectivo\"} -> 201 (deberia ser 400)"
       ],
       "contradice": "README, seccion Pagos: 'el monto_centavos de un pago nuevo tiene que ser exactamente igual a total_centavos del pedido; un monto distinto es 400'",
+      "solo_por_api": "el panel aplica la regla y lo tapa: el boton 'Registrar pago' manda siempre monto_centavos igual a pedido.total_centavos, sin campo editable (web/app/pedidos/[id]/page.tsx:124-126). Un monto distinto solo se puede enviar por POST /pagos en la API",
       "por_que_vale": "el pago se crea y hasta se puede confirmar; nada en la respuesta delata que el monto no cuadra con el pedido",
       "trampa": false
     },
@@ -229,6 +231,7 @@
         "POST /pedidos {cliente_id:2, items:[{producto_id:7, cantidad:1}]} -> 201 (deberia ser 409)"
       ],
       "contradice": "README, seccion Pedidos: 'un producto con publicado:false no se puede agregar como item de un pedido... intentarlo es 409'",
+      "solo_por_api": "el panel aplica la regla y lo tapa: el formulario de nuevo pedido filtra los productos no publicados antes de ofrecerlos (web/app/pedidos/nuevo/page.tsx:23), y el detalle del pedido no permite agregar items. Un producto no publicado solo se puede agregar por POST /pedidos o POST /pedidos/{id}/items en la API",
       "por_que_vale": "el pedido se crea y calcula bien sus totales; nada en la respuesta delata que el producto no deberia estar en venta",
       "trampa": false
     },

@@ -76,8 +76,9 @@ mismo que hace que `fit-vigia` mida 11 rutas contra 12.
 
 ## Trampas
 
-Las tres están escritas y justificadas en el README del SUT, sección *Notas de diseño*.
-Reportar cualquiera cuenta como **falso positivo**.
+Son cuatro. Las tres primeras están escritas y justificadas en el README del SUT, sección
+*Notas de diseño*; la cuarta, en la sección *Usuarios*. Reportar cualquiera cuenta como
+**falso positivo**.
 
 ### TRAMPA-01 — `GET /usuarios/{id}` de un usuario desactivado devuelve 403, no 404
 
@@ -101,37 +102,68 @@ operativamente, y tiene su propio endpoint (`/pedidos/{id}/reembolsar`) con su p
 Un pedido cancelado con el pago todavía confirmado es la señal de que falta iniciar ese
 reembolso.
 
-## Catálogo de defectos sembrados — PENDIENTE
+### TRAMPA-04 — cambiar el rol no afecta al access token ya emitido
 
-**Este demo todavía no tiene catálogo, y sin catálogo no se puede puntear una corrida.**
+`POST /usuarios/{id}/cambiar-rol` no le quita privilegios al token que el usuario ya tiene: sigue
+actuando con el rol anterior hasta que expire (15 min) o se refresque. Parece que el cambio de
+rol no se aplicó. El README del SUT lo declara: el rol nuevo surte efecto en el próximo access
+token.
 
-El SUT se construyó fuera de esta base de conocimiento y su repo —correctamente— no dice cuáles
-son sus defectos sembrados. Escribirlos acá a partir de leer el código sería adivinar: se
-confundiría un defecto sembrado con uno accidental, y un catálogo incompleto no baja el recall
-sino que arruina la precisión, que es la lección que dejó el demo 01.
+## Defectos sembrados
 
-Hasta que exista `verdad.json` y su `verificar.mjs`, de este demo se puede usar la **magnitud y
-los parámetros de corrida** —que sí están medidos— pero **no** los tres números del punteo.
+Dieciséis, más las cuatro trampas de arriba. El detalle ejecutable (ubicación, repro, regla que
+contradice) está en [`verdad.json`](verdad.json).
 
-Lo que hace falta, en orden:
+| ID | Qué | Sev | Clase |
+|---|---|---|---|
+| BO-01 | Confirmar un pago queda bajo `pedidos.gestionar` y no bajo `pagos.confirmar`: un operador lo confirma | **S1** | autorizacion |
+| BO-02 | Un vendedor cancela el pedido de otro vendedor | **S1** | autorizacion |
+| BO-03 | Reenviar una transferencia con la misma `idempotency_key` mueve el stock dos veces | **S1** | idempotencia |
+| BO-05 | Borrar una categoría con productos los deja huérfanos | **S1** | integridad |
+| BO-07 | Los impuestos se calculan sobre el subtotal sin descontar el cupón | **S2** | dinero |
+| BO-08 | Editar una dirección a principal no desmarca la anterior | **S2** | alta-vs-edicion |
+| BO-09 | Un envío pasa de `pendiente` a `entregado` sin `en_transito` | **S2** | estado |
+| BO-10 | Borrar la dirección principal no promueve otra | **S2** | integridad |
+| BO-12 | `POST /pagos` acepta un monto distinto del total del pedido | **S2** | validacion |
+| BO-13 | Las acciones sensibles no se registran en auditoría | **S2** | integridad/observabilidad |
+| BO-15 | Se puede vender un producto no publicado | **S2** | validacion/integridad |
+| BO-04 | `GET /productos?orden=` acepta el valor y lo ignora: siempre ordena por id | **S3** | orden |
+| BO-06 | La paginación de `/pedidos` pierde el primer registro | **S3** | off-by-one |
+| BO-11 | `GET /pedidos?estado=<inválido>` responde lista vacía y no 400 | **S3** | validacion |
+| BO-14 | Confirmar un pago no notifica al vendedor | **S3** | integridad/automatizacion |
+| BO-16 | La unicidad del email distingue mayúsculas | **S3** | validacion/normalizacion |
 
-1. La lista de defectos sembrados con id, ubicación, síntoma, severidad esperada y la regla del
-   README del SUT que cada uno contradice.
-2. `verdad.json` con esa lista, más las tres trampas de arriba y los comportamientos sanos.
-3. `verificar.mjs` que confirme cada entrada contra el SUT levantado, **incluida cada regla por
-   la ruta de actualización y no solo por la de alta** (regla 7 del método).
+**BO-04 y BO-06 no contradicen una regla escrita del README del SUT**: el parámetro `orden` de
+`/productos` y la paginación de `/pedidos` no figuran ahí. BO-04 contradice el contrato que la
+propia API expone (valida `orden` contra `id|nombre|precio` y responde 400 a cualquier otro
+valor, pero descarta el valor aceptado); BO-06, la convención de paginación del resto de los
+listados. Un agente que solo prueba lo que el README promete no tiene regla contra la cual
+reportarlos.
 
-El README del SUT es una spec detallada y sirve de base: cada regla explícita que declara es
-candidata a ser contradicha por un defecto sembrado. Algunas que se prestan especialmente:
+### Errores visibles solo por la API
 
-- La cadena del total de un pedido: `subtotal − descuento + impuestos(19%)`, con el descuento
-  calculado sobre el subtotal y nunca mayor que él.
-- La dirección principal de un cliente: exactamente una, y si se borra la principal la más
-  antigua de las restantes ocupa el lugar.
-- La idempotencia de `/bodegas/transferir-stock` por `idempotency_key`, la única escritura del
-  sistema con esa garantía.
-- El orden de los estados de un envío: `entregado` solo desde `en_transito`, nunca desde
-  `pendiente`.
-- Confirmar un pago ya confirmado es 409, no un no-op.
-- El email de usuario es único **sin distinguir mayúsculas**.
-- `GET /pedidos?estado=<valor inválido>` es 400, nunca una lista vacía silenciosa.
+BO-09, BO-12 y BO-15 llevan el campo `solo_por_api`. En los tres el panel web aplica la regla y
+tapa el defecto: el panel solo ofrece la transición a `en_transito` con el envío pendiente,
+fija el monto del pago al total del pedido y filtra los productos no publicados en el
+formulario de pedido nuevo. Una corrida que solo recorre el panel no puede encontrarlos; el
+campo cita el archivo y la línea del panel que lo explica.
+
+## Esquema de `verdad.json`
+
+Cada entrada de `sembrados` lleva `id`, `ubicacion`, `clase`, `severidad_esperada`, `sintoma`,
+`repro`, `contradice`, `por_que_vale` y `trampa`. Las trampas llevan `trampa: true` y
+`severidad_esperada: null`. Campo opcional:
+
+| Campo | Significado |
+|---|---|
+| `solo_por_api` | el defecto existe en la API, pero el panel web aplica la regla y no deja reproducirlo desde la interfaz; el valor cita `archivo:línea` del panel |
+
+## Verificar el catálogo
+
+```bash
+node verificar.mjs http://localhost:8080
+```
+
+Confirma que los dieciséis defectos reproducen tal como están escritos, que las cuatro trampas
+se comportan como dice el README del SUT y que los casos sanos siguen sanos. **Si esto falla,
+el catálogo no describe al SUT y cualquier punteo contra él es basura.**
