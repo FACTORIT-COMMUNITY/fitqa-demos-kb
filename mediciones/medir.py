@@ -1,9 +1,9 @@
-"""Lanza y vigila una tanda de ejecuciones del agente de QA contra los demos, sin intervención.
+"""Lanza y vigila un conjunto de ejecuciones del agente de QA contra los demos y las puntea.
 
 Uso:
-  python tandas/tanda.py tandas/tanda-3.json             lanza o retoma la tanda y espera a que termine
-  python tandas/tanda.py tandas/tanda-3.json --simular   muestra el orden y la duración estimada sin lanzar
-  python tandas/tanda.py tandas/tanda-3.json --estado    una línea por ejecución, desde el estado guardado
+  python mediciones/medir.py mediciones/<conjunto>.json             lanza o retoma y espera el final
+  python mediciones/medir.py mediciones/<conjunto>.json --simular   orden y duración estimada, sin lanzar
+  python mediciones/medir.py mediciones/<conjunto>.json --estado    una línea por ejecución
 
 Variables de entorno:
   FITQA_BASE_URL   API de la plataforma, por ejemplo https://<plataforma>/api
@@ -140,16 +140,17 @@ def salud(url):
         return False
 
 
-# --- la tanda -----------------------------------------------------------------------------
+# --- conjunto de ejecuciones -------------------------------------------------------------
 
-class Tanda:
+class Medicion:
     def __init__(self, ruta_config):
         self.cfg = leer_json(ruta_config)
-        self.nombre = self.cfg["nombre"]
-        self.salida = ruta_kb(self.cfg.get("salida", f"tandas/salida/{self.nombre}"))
+        self.nombre = self.cfg["slug"]
+        self.titulo = self.cfg["titulo"]
+        self.salida = ruta_kb(self.cfg.get("salida", f"mediciones/salida/{self.nombre}"))
         os.makedirs(self.salida, exist_ok=True)
         self.ruta_estado = os.path.join(self.salida, "estado.json")
-        self.log = Registro(os.path.join(self.salida, "tanda.log"))
+        self.log = Registro(os.path.join(self.salida, "registro.log"))
         self.items = {e["id"]: e for e in self.cfg["ejecuciones"]}
         self.orden = [e["id"] for e in self.cfg["ejecuciones"]]
         self.estado = leer_json(self.ruta_estado) if os.path.exists(self.ruta_estado) else {
@@ -177,7 +178,8 @@ class Tanda:
         return [i for i in self.orden if self.e(i)["estado"] == "pendiente"]
 
     def etiqueta(self, item_id):
-        return f"{self.nombre} · {item_id}"
+        """Nombre visible de la ejecución en la plataforma."""
+        return self.items[item_id]["etiqueta"]
 
     # -- cuerpo de la petición
 
@@ -308,7 +310,7 @@ class Tanda:
 
     def plataforma_llena(self, plataforma):
         """El límite de ejecuciones simultáneas de la plataforma es global: lo ocupan también
-        ejecuciones ajenas a la tanda."""
+        ejecuciones ajenas a este conjunto."""
         activos = [r for r in plataforma.runs_recientes()
                    if r.get("status") in ("queued", "provisioning", "running", "paused")]
         tope = self.cfg.get("tope_plataforma", self.cfg.get("max_simultaneas", 2))
@@ -450,17 +452,18 @@ class Tanda:
                 dur = f"{int((b - a).total_seconds() // 60)} min"
             def n(clave):
                 return "" if x.get(clave) is None else x[clave]
-            filas.append(f"| {i} | {it.get('modo', '')} | `{x.get('run_id', '')}` | {x.get('status', self.e(i)['estado'])} "
+            filas.append(f"| {it['etiqueta']} | `{x.get('run_id', '')}` | {x.get('status', self.e(i)['estado'])} "
                          f"| {n('outcome')} | {n('total')} | {n('passed')} | {n('failed')} "
                          f"| {n('not_executed')} | {n('real_bugs')} | {dur} | {len(self.e(i)['intentos'])} |")
         dudosos = [l.strip() for l in punteo.splitlines() if "SIN DECIDIR" in l or l.strip().startswith("aviso")]
         partes = [
-            f"# {self.nombre}", "",
+            f"# {self.titulo}", "",
             f"Plataforma: {(self.estado.get('plataforma') or {}).get('version')} "
             f"({(self.estado.get('plataforma') or {}).get('commit', '')[:8]}). "
-            f"Agente: `{(self.estado.get('agente') or {}).get('image_ref')}`.", "",
-            "| Ejecución | Modo | Run | Estado | Desenlace | Casos | Correctas | Fallidas | No ejecutadas | Defectos | Duración | Intentos |",
-            "|---|---|---|---|---|---:|---:|---:|---:|---:|---|---:|", *filas, "",
+            f"Agente: `{(self.estado.get('agente') or {}).get('image_ref')}`. "
+            f"Modelos: {json.dumps(self.estado.get('modelos'), ensure_ascii=False)}.", "",
+            "| Ejecución | Run | Estado | Desenlace | Casos | Correctas | Fallidas | No ejecutadas | Defectos | Duración | Intentos |",
+            "|---|---|---|---|---:|---:|---:|---:|---:|---|---:|", *filas, "",
         ]
         if self.estado.get("apagar_a_mano"):
             partes += ["Servicios de Cloud Run que no se pudieron apagar: " + ", ".join(self.estado["apagar_a_mano"]), ""]
@@ -492,7 +495,7 @@ class Tanda:
                 g = self.items[i].get("grupo")
                 if len(curso) < maxs and not (g and any(self.items[c].get("grupo") == g for c, _ in curso)):
                     fin = reloj + self.items[i].get("minutos_estimados", 60)
-                    print(f"+{reloj // 60:>2}h{reloj % 60:02d}  lanza {i:<14} {self.items[i]['target']:<14} "
+                    print(f"+{reloj // 60:>2}h{reloj % 60:02d}  lanza {self.items[i]['etiqueta']:<48} "
                           f"termina ~+{fin // 60}h{fin % 60:02d}  Cloud Run: {', '.join(self.servicios(i)) or '-'}")
                     curso.append((i, fin))
                     pend.remove(i)
@@ -504,19 +507,19 @@ class Tanda:
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Lanza y vigila una tanda de ejecuciones contra los demos")
+    ap = argparse.ArgumentParser(description="Lanza, vigila y puntea un conjunto de ejecuciones contra los demos")
     ap.add_argument("config")
     ap.add_argument("--simular", action="store_true")
     ap.add_argument("--estado", action="store_true")
     a = ap.parse_args()
-    tanda = Tanda(a.config)
+    medicion = Medicion(a.config)
     if a.estado:
-        tanda.imprimir_estado()
+        medicion.imprimir_estado()
         return 0
     if a.simular:
-        tanda.simular()
+        medicion.simular()
         return 0
-    return tanda.correr()
+    return medicion.correr()
 
 
 if __name__ == "__main__":
