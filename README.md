@@ -222,29 +222,35 @@ evidencia (archivo, función, endpoint, palabras del síntoma) y sale marcado co
 eso alcanza, sale como `SIN DECIDIR` y no suma como acierto. El emparejamiento manual manda
 siempre. `--json salida.json` escribe el detalle completo.
 
-### Correr una tanda completa
+### Medición de varias ejecuciones con lanzamiento y punteo automáticos
 
-[`tandas/tanda.py`](tandas/tanda.py) (Python 3, sin dependencias) lanza y vigila una tanda de
-ejecuciones descrita en un JSON (por ejemplo [`tandas/tanda-3.json`](tandas/tanda-3.json): los tres
-demos por repositorio y por URL, con y sin requisitos) y al final la puntea:
+[`mediciones/medir.py`](mediciones/medir.py) (Python 3, sin dependencias) lanza y vigila las
+ejecuciones descritas en un JSON y al final las puntea. Conjuntos incluidos:
+
+| Archivo | Ejecuciones |
+|---|---|
+| [`mediciones/tres-demos-todos-los-modos.json`](mediciones/tres-demos-todos-los-modos.json) | Los tres demos por repositorio, y por URL con y sin el documento de requisitos (11) |
+| [`mediciones/biblioteca-repositorio-corta.json`](mediciones/biblioteca-repositorio-corta.json) | Biblioteca por repositorio, de 6 a 8 casos (1) |
 
 ```bash
 export FITQA_BASE_URL=https://<plataforma>/api FITQA_TOKEN_FILE=<archivo con el token>
-python tandas/tanda.py tandas/tanda-3.json --simular   # orden y duración estimada
-python tandas/tanda.py tandas/tanda-3.json             # lanza o retoma, y espera
-python tandas/tanda.py tandas/tanda-3.json --estado    # una línea por ejecución
+python mediciones/medir.py mediciones/<conjunto>.json --simular   # orden y duración estimada
+python mediciones/medir.py mediciones/<conjunto>.json             # lanza o retoma, y espera
+python mediciones/medir.py mediciones/<conjunto>.json --estado    # una línea por ejecución
 ```
 
-- Corre como máximo dos ejecuciones a la vez y nunca dos del mismo demo por URL, porque comparten
-  la base en memoria.
-- Enciende y apaga los servicios de Cloud Run según haga falta (requiere `gcloud` con sesión).
-- Aprueba una vez la revisión del plan y no cancela nada.
-- Reintenta solo las fallas de infraestructura.
-- Guarda su estado en `tandas/salida/<nombre>/`: el mismo comando retoma sin duplicar.
-- El resultado queda en `resumen.md`.
+- **Concurrencia:** respeta el tope de ejecuciones simultáneas de la plataforma y no lanza a la
+  vez dos ejecuciones por URL del mismo demo, porque comparten la base en memoria.
+- **Cloud Run:** mantiene encendidos solo los servicios de las ejecuciones en curso; requiere
+  `gcloud` con sesión.
+- **Revisión del plan y reintentos:** aprueba una vez la revisión del plan, no cancela ejecuciones
+  y reintenta solo las fallas de infraestructura.
+- **Estado y resultado:** el estado queda en `mediciones/salida/<slug>/` y el mismo comando retoma
+  sin duplicar. El resultado queda en `resumen.md` de esa carpeta.
+- **Nombre en la plataforma:** el campo `etiqueta` de cada ejecución.
 
-El procedimiento completo para un agente está en la skill
-[`skills/bateria-demos-qa`](skills/bateria-demos-qa/SKILL.md).
+El procedimiento para un agente está en la skill
+[`skills/medir-agente-con-demos`](skills/medir-agente-con-demos/SKILL.md).
 
 ## Reglas para sembrar un defecto
 

@@ -1,0 +1,35 @@
+{
+  "slug": "biblioteca-repositorio-corta-2026-10-09",
+  "titulo": "Verificación del script con una ejecución corta de Biblioteca por repositorio (2026-10-09)",
+  "descripcion": "Una ejecución de 6 a 8 casos y 2 iteraciones, sin Cloud Run.",
+  "proyecto": "demo",
+  "agente": "qa-agent-v2",
+  "max_simultaneas": 2,
+  "intervalo_segundos": 60,
+  "reintentos": 2,
+  "motivos_de_infra": [
+    "provision_error",
+    "interrupted"
+  ],
+  "verdad": {
+    "01": "01-biblioteca/verdad.json"
+  },
+  "perfiles": {
+    "corto": {
+      "min_test_cases": 6,
+      "max_test_cases": 8,
+      "max_iterations": 2,
+      "plan_gate": true
+    }
+  },
+  "ejecuciones": [
+    {
+      "id": "01-repo",
+      "demo": "01",
+      "target": "SUT 01",
+      "perfil": "corto",
+      "minutos_estimados": 20,
+      "etiqueta": "Demo 01 Biblioteca · repositorio · verificación corta"
+    }
+  ]
+}

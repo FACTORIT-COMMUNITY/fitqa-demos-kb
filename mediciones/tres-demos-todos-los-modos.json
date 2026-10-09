@@ -1,6 +1,7 @@
 {
-  "nombre": "tanda-3",
-  "descripcion": "Los tres demos por repositorio y por URL, con y sin el documento de requisitos, con los parámetros de la estimación de cada ficha.",
+  "slug": "tres-demos-2026-10-09",
+  "titulo": "Medición del agente en los tres demos por repositorio y por URL, con y sin requisitos (2026-10-09)",
+  "descripcion": "Once ejecuciones: cada demo por repositorio, y por URL con y sin el documento de requisitos. Parámetros de la estimación de cada ficha.",
   "proyecto": "demo",
   "agente": "qa-agent-v2",
   "max_simultaneas": 2,
@@ -53,36 +54,35 @@
     {
       "id": "03-api",
       "demo": "03",
-      "modo": "url sin requisitos",
       "target": "demo-03-api",
       "perfil": "03",
       "grupo": "03",
       "cloud_run": [
         "fitqa-demo-03-api"
       ],
-      "dataset": "tandas/datos/03-backoffice.json",
-      "minutos_estimados": 150
+      "dataset": "mediciones/datos/03-backoffice.json",
+      "minutos_estimados": 150,
+      "etiqueta": "Demo 03 Back-office · API · sin requisitos"
     },
     {
       "id": "03-api-req",
       "demo": "03",
-      "modo": "url con requisitos",
       "target": "demo-03-api",
       "perfil": "03",
       "grupo": "03",
       "cloud_run": [
         "fitqa-demo-03-api"
       ],
-      "dataset": "tandas/datos/03-backoffice.json",
+      "dataset": "mediciones/datos/03-backoffice.json",
       "documentos": [
         "03-backoffice/requisitos-y-criterios-de-aceptacion.md"
       ],
-      "minutos_estimados": 150
+      "minutos_estimados": 150,
+      "etiqueta": "Demo 03 Back-office · API · con requisitos"
     },
     {
       "id": "03-web",
       "demo": "03",
-      "modo": "url sin requisitos",
       "target": "demo-03-web",
       "perfil": "03",
       "grupo": "03",
@@ -90,16 +90,16 @@
         "fitqa-demo-03-api",
         "fitqa-demo-03-web"
       ],
-      "dataset": "tandas/datos/03-backoffice.json",
+      "dataset": "mediciones/datos/03-backoffice.json",
       "network_allowlist": [
         "fitqa-demo-03-api-o6q2dj7niq-uc.a.run.app"
       ],
-      "minutos_estimados": 190
+      "minutos_estimados": 190,
+      "etiqueta": "Demo 03 Back-office · panel web · sin requisitos"
     },
     {
       "id": "03-web-req",
       "demo": "03",
-      "modo": "url con requisitos",
       "target": "demo-03-web",
       "perfil": "03",
       "grupo": "03",
@@ -107,55 +107,55 @@
         "fitqa-demo-03-api",
         "fitqa-demo-03-web"
       ],
-      "dataset": "tandas/datos/03-backoffice.json",
+      "dataset": "mediciones/datos/03-backoffice.json",
       "documentos": [
         "03-backoffice/requisitos-y-criterios-de-aceptacion.md"
       ],
       "network_allowlist": [
         "fitqa-demo-03-api-o6q2dj7niq-uc.a.run.app"
       ],
-      "minutos_estimados": 190
+      "minutos_estimados": 190,
+      "etiqueta": "Demo 03 Back-office · panel web · con requisitos"
     },
     {
       "id": "03-repo",
       "demo": "03",
-      "modo": "repositorio",
       "target": "SUT 03",
       "perfil": "03",
-      "minutos_estimados": 160
+      "minutos_estimados": 160,
+      "etiqueta": "Demo 03 Back-office · repositorio"
     },
     {
       "id": "01-repo",
       "demo": "01",
-      "modo": "repositorio",
       "target": "SUT 01",
       "perfil": "01",
-      "minutos_estimados": 40
+      "minutos_estimados": 40,
+      "etiqueta": "Demo 01 Biblioteca · repositorio"
     },
     {
       "id": "02-repo",
       "demo": "02",
-      "modo": "repositorio",
       "target": "SUT 02",
       "perfil": "02",
-      "minutos_estimados": 100
+      "minutos_estimados": 100,
+      "etiqueta": "Demo 02 Canchas · repositorio"
     },
     {
       "id": "01-url",
       "demo": "01",
-      "modo": "url sin requisitos",
       "target": "demo-01-web",
       "perfil": "01",
       "grupo": "01",
       "cloud_run": [
         "fitqa-demo-01"
       ],
-      "minutos_estimados": 55
+      "minutos_estimados": 55,
+      "etiqueta": "Demo 01 Biblioteca · web · sin requisitos"
     },
     {
       "id": "01-url-req",
       "demo": "01",
-      "modo": "url con requisitos",
       "target": "demo-01-web",
       "perfil": "01",
       "grupo": "01",
@@ -165,36 +165,37 @@
       "documentos": [
         "01-biblioteca/requisitos-y-criterios-de-aceptacion.md"
       ],
-      "minutos_estimados": 55
+      "minutos_estimados": 55,
+      "etiqueta": "Demo 01 Biblioteca · web · con requisitos"
     },
     {
       "id": "02-url",
       "demo": "02",
-      "modo": "url sin requisitos",
       "target": "demo-02-web",
       "perfil": "02",
       "grupo": "02",
       "cloud_run": [
         "fitqa-demo-02"
       ],
-      "dataset": "tandas/datos/02-canchas.json",
-      "minutos_estimados": 120
+      "dataset": "mediciones/datos/02-canchas.json",
+      "minutos_estimados": 120,
+      "etiqueta": "Demo 02 Canchas · web · sin requisitos"
     },
     {
       "id": "02-url-req",
       "demo": "02",
-      "modo": "url con requisitos",
       "target": "demo-02-web",
       "perfil": "02",
       "grupo": "02",
       "cloud_run": [
         "fitqa-demo-02"
       ],
-      "dataset": "tandas/datos/02-canchas.json",
+      "dataset": "mediciones/datos/02-canchas.json",
       "documentos": [
         "02-canchas/requisitos-y-criterios-de-aceptacion.md"
       ],
-      "minutos_estimados": 120
+      "minutos_estimados": 120,
+      "etiqueta": "Demo 02 Canchas · web · con requisitos"
     }
   ]
 }
