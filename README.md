@@ -222,6 +222,30 @@ evidencia (archivo, función, endpoint, palabras del síntoma) y sale marcado co
 eso alcanza, sale como `SIN DECIDIR` y no suma como acierto. El emparejamiento manual manda
 siempre. `--json salida.json` escribe el detalle completo.
 
+### Correr una tanda completa
+
+[`tandas/tanda.py`](tandas/tanda.py) (Python 3, sin dependencias) lanza y vigila una tanda de
+ejecuciones descrita en un JSON (por ejemplo [`tandas/tanda-3.json`](tandas/tanda-3.json): los tres
+demos por repositorio y por URL, con y sin requisitos) y al final la puntea:
+
+```bash
+export FITQA_BASE_URL=https://<plataforma>/api FITQA_TOKEN_FILE=<archivo con el token>
+python tandas/tanda.py tandas/tanda-3.json --simular   # orden y duración estimada
+python tandas/tanda.py tandas/tanda-3.json             # lanza o retoma, y espera
+python tandas/tanda.py tandas/tanda-3.json --estado    # una línea por ejecución
+```
+
+- Corre como máximo dos ejecuciones a la vez y nunca dos del mismo demo por URL, porque comparten
+  la base en memoria.
+- Enciende y apaga los servicios de Cloud Run según haga falta (requiere `gcloud` con sesión).
+- Aprueba una vez la revisión del plan y no cancela nada.
+- Reintenta solo las fallas de infraestructura.
+- Guarda su estado en `tandas/salida/<nombre>/`: el mismo comando retoma sin duplicar.
+- El resultado queda en `resumen.md`.
+
+El procedimiento completo para un agente está en la skill
+[`skills/bateria-demos-qa`](skills/bateria-demos-qa/SKILL.md).
+
 ## Reglas para sembrar un defecto
 
 Lo aprendido construyendo el primero:

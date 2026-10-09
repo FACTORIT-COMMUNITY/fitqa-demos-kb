@@ -1,0 +1,59 @@
+{
+  "descripcion": "Cuentas de la semilla del sistema de reserva de canchas. POST /admin/reset vuelve a la semilla e invalida todos los tokens: despues de un reset hay que volver a iniciar sesion.",
+  "credenciales_admin": {
+    "email": "admin@canchas.test",
+    "password": "admin123",
+    "rol": "admin"
+  },
+  "cuentas": [
+    {
+      "email": "admin@canchas.test",
+      "password": "admin123",
+      "rol": "admin"
+    },
+    {
+      "email": "roberto@canchas.test",
+      "password": "duenio123",
+      "rol": "duenio",
+      "sedes": [
+        1,
+        2
+      ]
+    },
+    {
+      "email": "lucia@canchas.test",
+      "password": "duenio123",
+      "rol": "duenio",
+      "sedes": [
+        3,
+        4
+      ]
+    },
+    {
+      "email": "ana@canchas.test",
+      "password": "jugador123",
+      "rol": "jugador"
+    },
+    {
+      "email": "bruno@canchas.test",
+      "password": "jugador123",
+      "rol": "jugador"
+    },
+    {
+      "email": "carla@canchas.test",
+      "password": "jugador123",
+      "rol": "jugador"
+    },
+    {
+      "email": "diego@canchas.test",
+      "password": "jugador123",
+      "rol": "jugador"
+    },
+    {
+      "email": "elena@canchas.test",
+      "password": "jugador123",
+      "rol": "jugador",
+      "estado": "dada de baja"
+    }
+  ]
+}
