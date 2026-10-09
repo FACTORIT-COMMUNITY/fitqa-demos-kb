@@ -24,7 +24,7 @@ Los enlaces van en una sola dirección: de acá al demo, nunca del demo hacia ac
 |---|---|---|---|---|---|---|
 | 01 | Biblioteca de barrio | [fitqa-demo-01](https://github.com/FACTORIT-COMMUNITY/fitqa-demo-01) | [fitqa-demo-01](https://fitqa-demo-01-o6q2dj7niq-uc.a.run.app) | Node 24 + Express + `node:sqlite` | **pequeño** (S=13, D=356) | 3 + 1 trampa |
 | 02 | Reserva de canchas | [fitqa-demo-02](https://github.com/FACTORIT-COMMUNITY/fitqa-demo-02) | [fitqa-demo-02](https://fitqa-demo-02-o6q2dj7niq-uc.a.run.app) | Python 3.13 + FastAPI + `sqlite3` | **mediano** (S=68, D=2.747) | 8 + 2 trampas |
-| 03 | Back-office | [fitqa-demo-03](https://github.com/FACTORIT-COMMUNITY/fitqa-demo-03) | [api](https://fitqa-demo-03-api-o6q2dj7niq-uc.a.run.app) · [web](https://fitqa-demo-03-web-o6q2dj7niq-uc.a.run.app) | Go + chi + Next | **grande** (S=107, D=5.940) | _catálogo pendiente_ + 3 trampas |
+| 03 | Back-office | [fitqa-demo-03](https://github.com/FACTORIT-COMMUNITY/fitqa-demo-03) | [api](https://fitqa-demo-03-api-o6q2dj7niq-uc.a.run.app) · [web](https://fitqa-demo-03-web-o6q2dj7niq-uc.a.run.app) | Go + chi + Next | **grande** (S=107, D=5.940) | 16 + 4 trampas |
 
 Los tres medidos el 2026-09-23 sobre su clone, con la misma skill y la misma versión. Cada uno
 cae en su bucket por un camino distinto: el 01 al piso, el 02 solo por superficie, el 03 por
@@ -54,6 +54,24 @@ Ficha de cada uno en su carpeta: [`01-biblioteca/`](01-biblioteca/), [`02-cancha
 - **Las trampas**: comportamientos que parecen defectos y están documentados en el SUT.
   Reportarlos cuenta como falso positivo.
 - **Un verificador ejecutable** que confirma que cada entrada del catálogo reproduce de verdad.
+- **Los requisitos y criterios de aceptación** del sistema (`requisitos-y-criterios-de-aceptacion.md`).
+
+## Requisitos y criterios de aceptación
+
+Cada carpeta de demo tiene un `requisitos-y-criterios-de-aceptacion.md`: el documento que un
+cliente le entregaría a QA. Describe cómo debe comportarse el sistema —roles y permisos,
+entidades, endpoints, pantallas, operaciones de soporte como el reset, y cada regla con su
+criterio verificable (entrada → resultado esperado)— y nada más.
+
+- [`01-biblioteca/requisitos-y-criterios-de-aceptacion.md`](01-biblioteca/requisitos-y-criterios-de-aceptacion.md)
+- [`02-canchas/requisitos-y-criterios-de-aceptacion.md`](02-canchas/requisitos-y-criterios-de-aceptacion.md)
+- [`03-backoffice/requisitos-y-criterios-de-aceptacion.md`](03-backoffice/requisitos-y-criterios-de-aceptacion.md)
+
+Se entregan al agente como requisitos en las ejecuciones por URL. Se escriben solo a partir de las reglas del README del SUT:
+no mencionan que el sistema es un demo, ni el catálogo, ni describen ningún comportamiento
+incorrecto, y no agregan reglas que el README no tenga. Por eso una regla que el README no
+declara —como el orden de `/productos` o la paginación de `/pedidos` del demo 03— tampoco
+aparece en el documento.
 
 ## El ciclo completo
 
@@ -71,7 +89,8 @@ python medir.py <ruta-al-clone>
 # 4. correr el agente con los parámetros que salieron del paso 3
 QA_BASE_URL=http://localhost:3210 fit-qa --project <ruta-al-clone> ...
 
-# 5. puntear el informe del agente contra verdad.json
+# 5. puntear el informe del agente contra verdad.json (ver "Cómo se puntea una corrida")
+python punteo/puntear.py --verdad <kb>/01-biblioteca/verdad.json <run>.json
 ```
 
 ## Desplegar en Cloud Run
@@ -164,10 +183,44 @@ done
 Tres números, y son el resultado de la corrida — no el informe del agente:
 
 - **Recall** — sembrados con `trampa: false` que el agente reportó, sobre el total de sembrados.
-- **Precisión** — bugs reportados que están en el catálogo, sobre el total de bugs reportados.
-  **Reportar una trampa cuenta como falso positivo.** Sin al menos una trampa se mide recall y
-  nunca precisión, y un agente que reporta todo saca 100%.
+- **Precisión** — reportes que son aciertos o hallazgos adicionales, sobre el total de defectos
+  reportados. **Reportar una trampa cuenta como falso positivo.** Sin al menos una trampa se
+  mide recall y nunca precisión, y un agente que reporta todo saca 100%.
 - **Acuerdo de severidad** — de los encontrados, cuántos coinciden con `severidad_esperada`.
+
+Un defecto reportado es una evaluación con veredicto `real-bug`. Cada uno se empareja a mano
+con el catálogo en [`punteo/emparejamientos.json`](punteo/emparejamientos.json) y cae en una de
+tres categorías:
+
+| Categoría | Cuándo | Clases en `emparejamientos.json` |
+|---|---|---|
+| Acierto | corresponde a un sembrado con `trampa: false` | `sembrado` |
+| Hallazgo adicional | no está en el catálogo y es un defecto real del sistema | `real_no_sembrado` (contradice una regla escrita del SUT), `real_sin_regla` (defecto objetivo verificado sin regla escrita) |
+| Falso positivo | es una trampa, o no es un defecto real | `trampa`, `falso_positivo`, `fuera_sin_regla` (expectativa del agente sin contrato del SUT) |
+
+**Un hallazgo adicional no es un falso positivo.** Un catálogo incompleto no puede castigar al
+agente por encontrar un defecto que existe; el adicional suma en la precisión y se informa
+aparte, como candidato a entrar al catálogo.
+
+### Correr el punteo
+
+[`punteo/puntear.py`](punteo/puntear.py) (Python 3, sin dependencias) toma el JSON de cada
+ejecución tal como lo devuelve `GET /api/runs/{id}` y reporta recall, precisión, aciertos,
+hallazgos adicionales, falsos positivos, trampas reportadas y acuerdo de severidad.
+
+```bash
+# con las ejecuciones ya descargadas
+python punteo/puntear.py --verdad 03-backoffice/verdad.json run-a.json run-b.json
+
+# por id: las baja de la plataforma y las guarda en --cache
+FITQA_BASE_URL=https://<plataforma>/api FITQA_TOKEN=<token> \
+  python punteo/puntear.py --verdad 02-canchas/verdad.json --cache .cache <run_id>
+```
+
+Un reporte sin entrada en `emparejamientos.json` recibe un emparejamiento automático por
+evidencia (archivo, función, endpoint, palabras del síntoma) y sale marcado como aviso; si ni
+eso alcanza, sale como `SIN DECIDIR` y no suma como acierto. El emparejamiento manual manda
+siempre. `--json salida.json` escribe el detalle completo.
 
 ## Reglas para sembrar un defecto
 
@@ -179,8 +232,10 @@ Lo aprendido construyendo el primero:
    confirmación. Eso distingue un agente de un linter.
 3. **Al menos una trampa**, documentada y justificada en el README del SUT. Si no está
    documentada no es una trampa, es un bug.
-4. **Que cada defecto contradiga una regla escrita** en el README del SUT. Un defecto que no
-   contradice nada es una diferencia de opinión, y no se puede puntear.
+4. **Que cada defecto contradiga una regla escrita** en el README del SUT **o sea incoherente
+   por sí mismo**: un `total` que no coincide con los elementos devueltos, un parámetro de orden
+   que se acepta y no se aplica. Un defecto que no cumple ninguna de las dos es una diferencia de
+   opinión, y no se puede puntear.
 5. **Semilla determinística y endpoint de reset.** Sin eso, la iteración 7 prueba sobre lo que
    dejó la 6 y no se distingue un defecto de una contaminación.
 6. **Verificá el catálogo antes de usarlo.** Un catálogo que miente convierte cualquier punteo
