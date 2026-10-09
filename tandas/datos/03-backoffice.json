@@ -1,0 +1,33 @@
+{
+  "descripcion": "Cuentas de operacion del back-office (semilla del ambiente). El panel web consume la API publicada en api_base_url.",
+  "panel_url": "https://fitqa-demo-03-web-o6q2dj7niq-uc.a.run.app/",
+  "api_base_url": "https://fitqa-demo-03-api-o6q2dj7niq-uc.a.run.app",
+  "cuentas": [
+    {
+      "email": "ana.rodriguez@backoffice.demo",
+      "password": "Demo1234!",
+      "rol": "admin"
+    },
+    {
+      "email": "bruno.salas@backoffice.demo",
+      "password": "Demo1234!",
+      "rol": "operador"
+    },
+    {
+      "email": "carla.nunez@backoffice.demo",
+      "password": "Demo1234!",
+      "rol": "vendedor"
+    },
+    {
+      "email": "diego.paredes@backoffice.demo",
+      "password": "Demo1234!",
+      "rol": "vendedor"
+    },
+    {
+      "email": "elena.vidal@backoffice.demo",
+      "password": "Demo1234!",
+      "rol": "operador",
+      "estado": "desactivado"
+    }
+  ]
+}
