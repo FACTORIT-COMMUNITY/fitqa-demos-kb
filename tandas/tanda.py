@@ -428,9 +428,13 @@ class Tanda:
             if not ids:
                 continue
             salida_json = os.path.join(self.salida, f"punteo-{demo}.json")
+            plataforma = Plataforma()
+            env = dict(os.environ, FITQA_BASE_URL=plataforma.base, FITQA_TOKEN=plataforma.token,
+                       PYTHONIOENCODING="utf-8")
             p = subprocess.run([sys.executable, os.path.join(RAIZ, "punteo", "puntear.py"), "--verdad",
                                 ruta_kb(verdad), *ids, "--cache", os.path.join(self.salida, "cache"),
-                                "--json", salida_json], capture_output=True, text=True, encoding="utf-8")
+                                "--json", salida_json], capture_output=True, text=True, encoding="utf-8",
+                               env=env)
             textos.append(p.stdout + (p.stderr or ""))
         return "\n".join(textos)
 
@@ -444,10 +448,11 @@ class Tanda:
                 a = dt.datetime.fromisoformat(x["created_at"].replace("Z", "+00:00"))
                 b = dt.datetime.fromisoformat(x["ended_at"].replace("Z", "+00:00"))
                 dur = f"{int((b - a).total_seconds() // 60)} min"
+            def n(clave):
+                return "" if x.get(clave) is None else x[clave]
             filas.append(f"| {i} | {it.get('modo', '')} | `{x.get('run_id', '')}` | {x.get('status', self.e(i)['estado'])} "
-                         f"| {x.get('outcome') or ''} | {x.get('total') or ''} | {x.get('passed') or ''} "
-                         f"| {x.get('failed') or ''} | {x.get('not_executed') or ''} | {x.get('real_bugs') or ''} "
-                         f"| {dur} | {len(self.e(i)['intentos'])} |")
+                         f"| {n('outcome')} | {n('total')} | {n('passed')} | {n('failed')} "
+                         f"| {n('not_executed')} | {n('real_bugs')} | {dur} | {len(self.e(i)['intentos'])} |")
         dudosos = [l.strip() for l in punteo.splitlines() if "SIN DECIDIR" in l or l.strip().startswith("aviso")]
         partes = [
             f"# {self.nombre}", "",
