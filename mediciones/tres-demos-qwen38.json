@@ -1,0 +1,201 @@
+{
+  "slug": "tres-demos-qwen38-2026-10-13",
+  "titulo": "Medición del agente en los tres demos por repositorio y por URL, con y sin requisitos, con fit-monster-qwen38 (2026-10-13)",
+  "descripcion": "Once ejecuciones con los mismos parámetros que tres-demos-2026-10-09, con los cuatro roles en fit-monster-qwen38. Una ejecución a la vez para dejar libre un puesto de la plataforma.",
+  "proyecto": "demo",
+  "agente": "qa-agent-v2",
+  "max_simultaneas": 1,
+  "intervalo_segundos": 120,
+  "reintentos": 2,
+  "motivos_de_infra": [
+    "provision_error",
+    "interrupted"
+  ],
+  "cloud_run": {
+    "proyecto": "fit-qa-495414",
+    "region": "us-central1",
+    "salud": "https://{servicio}-o6q2dj7niq-uc.a.run.app/health"
+  },
+  "verdad": {
+    "01": "01-biblioteca/verdad.json",
+    "02": "02-canchas/verdad.json",
+    "03": "03-backoffice/verdad.json"
+  },
+  "perfiles": {
+    "01": {
+      "min_test_cases": 20,
+      "max_test_cases": 20,
+      "max_iterations": 6,
+      "env": {
+        "FIT_MAX_TURNS_ANALYZER": "60"
+      },
+      "plan_gate": true
+    },
+    "02": {
+      "min_test_cases": 45,
+      "max_test_cases": 68,
+      "max_iterations": 16,
+      "env": {
+        "FIT_MAX_TURNS_ANALYZER": "90"
+      },
+      "plan_gate": false
+    },
+    "03": {
+      "min_test_cases": 71,
+      "max_test_cases": 107,
+      "max_iterations": 24,
+      "env": {
+        "FIT_MAX_TURNS_ANALYZER": "120"
+      },
+      "plan_gate": true
+    }
+  },
+  "ejecuciones": [
+    {
+      "id": "01-repo",
+      "demo": "01",
+      "target": "SUT 01",
+      "perfil": "01",
+      "minutos_estimados": 96,
+      "etiqueta": "Demo 01 Biblioteca · repositorio · qwen38"
+    },
+    {
+      "id": "01-url",
+      "demo": "01",
+      "target": "demo-01-web",
+      "perfil": "01",
+      "grupo": "01",
+      "cloud_run": [
+        "fitqa-demo-01"
+      ],
+      "minutos_estimados": 132,
+      "etiqueta": "Demo 01 Biblioteca · web · sin requisitos · qwen38"
+    },
+    {
+      "id": "01-url-req",
+      "demo": "01",
+      "target": "demo-01-web",
+      "perfil": "01",
+      "grupo": "01",
+      "cloud_run": [
+        "fitqa-demo-01"
+      ],
+      "documentos": [
+        "01-biblioteca/requisitos-y-criterios-de-aceptacion.md"
+      ],
+      "minutos_estimados": 132,
+      "etiqueta": "Demo 01 Biblioteca · web · con requisitos · qwen38"
+    },
+    {
+      "id": "02-repo",
+      "demo": "02",
+      "target": "SUT 02",
+      "perfil": "02",
+      "minutos_estimados": 240,
+      "etiqueta": "Demo 02 Canchas · repositorio · qwen38"
+    },
+    {
+      "id": "02-url",
+      "demo": "02",
+      "target": "demo-02-web",
+      "perfil": "02",
+      "grupo": "02",
+      "cloud_run": [
+        "fitqa-demo-02"
+      ],
+      "dataset": "mediciones/datos/02-canchas.json",
+      "minutos_estimados": 288,
+      "etiqueta": "Demo 02 Canchas · web · sin requisitos · qwen38"
+    },
+    {
+      "id": "02-url-req",
+      "demo": "02",
+      "target": "demo-02-web",
+      "perfil": "02",
+      "grupo": "02",
+      "cloud_run": [
+        "fitqa-demo-02"
+      ],
+      "dataset": "mediciones/datos/02-canchas.json",
+      "documentos": [
+        "02-canchas/requisitos-y-criterios-de-aceptacion.md"
+      ],
+      "minutos_estimados": 288,
+      "etiqueta": "Demo 02 Canchas · web · con requisitos · qwen38"
+    },
+    {
+      "id": "03-repo",
+      "demo": "03",
+      "target": "SUT 03",
+      "perfil": "03",
+      "minutos_estimados": 384,
+      "etiqueta": "Demo 03 Back-office · repositorio · qwen38"
+    },
+    {
+      "id": "03-api",
+      "demo": "03",
+      "target": "demo-03-api",
+      "perfil": "03",
+      "grupo": "03",
+      "cloud_run": [
+        "fitqa-demo-03-api"
+      ],
+      "dataset": "mediciones/datos/03-backoffice.json",
+      "minutos_estimados": 360,
+      "etiqueta": "Demo 03 Back-office · API · sin requisitos · qwen38"
+    },
+    {
+      "id": "03-api-req",
+      "demo": "03",
+      "target": "demo-03-api",
+      "perfil": "03",
+      "grupo": "03",
+      "cloud_run": [
+        "fitqa-demo-03-api"
+      ],
+      "dataset": "mediciones/datos/03-backoffice.json",
+      "documentos": [
+        "03-backoffice/requisitos-y-criterios-de-aceptacion.md"
+      ],
+      "minutos_estimados": 360,
+      "etiqueta": "Demo 03 Back-office · API · con requisitos · qwen38"
+    },
+    {
+      "id": "03-web",
+      "demo": "03",
+      "target": "demo-03-web",
+      "perfil": "03",
+      "grupo": "03",
+      "cloud_run": [
+        "fitqa-demo-03-api",
+        "fitqa-demo-03-web"
+      ],
+      "dataset": "mediciones/datos/03-backoffice.json",
+      "network_allowlist": [
+        "fitqa-demo-03-api-o6q2dj7niq-uc.a.run.app"
+      ],
+      "minutos_estimados": 456,
+      "etiqueta": "Demo 03 Back-office · panel web · sin requisitos · qwen38"
+    },
+    {
+      "id": "03-web-req",
+      "demo": "03",
+      "target": "demo-03-web",
+      "perfil": "03",
+      "grupo": "03",
+      "cloud_run": [
+        "fitqa-demo-03-api",
+        "fitqa-demo-03-web"
+      ],
+      "dataset": "mediciones/datos/03-backoffice.json",
+      "documentos": [
+        "03-backoffice/requisitos-y-criterios-de-aceptacion.md"
+      ],
+      "network_allowlist": [
+        "fitqa-demo-03-api-o6q2dj7niq-uc.a.run.app"
+      ],
+      "minutos_estimados": 456,
+      "etiqueta": "Demo 03 Back-office · panel web · con requisitos · qwen38"
+    }
+  ]
+}
