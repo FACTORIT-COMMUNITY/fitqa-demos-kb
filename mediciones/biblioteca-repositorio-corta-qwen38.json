@@ -1,0 +1,35 @@
+{
+  "slug": "biblioteca-repositorio-corta-qwen38-2026-10-13",
+  "titulo": "Ejecución corta de Biblioteca por repositorio con fit-monster-qwen38 (2026-10-13)",
+  "descripcion": "Una ejecución de 6 a 8 casos y 2 iteraciones, sin Cloud Run, con los cuatro roles en fit-monster-qwen38. Mismo perfil que biblioteca-repositorio-corta-2026-10-09 (fit-monster-glm53) para comparar.",
+  "proyecto": "demo",
+  "agente": "qa-agent-v2",
+  "max_simultaneas": 2,
+  "intervalo_segundos": 60,
+  "reintentos": 2,
+  "motivos_de_infra": [
+    "provision_error",
+    "interrupted"
+  ],
+  "verdad": {
+    "01": "01-biblioteca/verdad.json"
+  },
+  "perfiles": {
+    "corto": {
+      "min_test_cases": 6,
+      "max_test_cases": 8,
+      "max_iterations": 2,
+      "plan_gate": true
+    }
+  },
+  "ejecuciones": [
+    {
+      "id": "01-repo",
+      "demo": "01",
+      "target": "SUT 01",
+      "perfil": "corto",
+      "minutos_estimados": 60,
+      "etiqueta": "Biblioteca · Repositorio · Revisión rápida · qwen38"
+    }
+  ]
+}
